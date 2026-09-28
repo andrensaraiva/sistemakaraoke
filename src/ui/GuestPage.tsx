@@ -23,7 +23,7 @@ export function GuestPage() {
 
   const position = own ? publicPosition(room, own.id) : 0
   const active = Boolean(own && !terminalStatuses.includes(own.status))
-  const canRequest = room.open && uid && (!active || showForm)
+  const canRequest = room.open && uid && (!own || showForm)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -86,7 +86,7 @@ export function GuestPage() {
         {room.open && <button className="button button-primary" onClick={() => setShowForm(true)}>Pedir outra música <span aria-hidden="true">↗</span></button>}
       </section>}
 
-      {canRequest && (!active || showForm) && <section className="card form-card" id="pedido">
+      {canRequest && <section className="card form-card" id="pedido">
         <div className="card-heading"><span className="section-kicker">Inscrição aberta</span><h2>Escolha sua música</h2><p>O operador confirma a versão antes de colocar na fila.</p></div>
         <form onSubmit={handleSubmit}>
           <div className="form-row"><label>Seu nome <span aria-hidden="true">*</span><input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} maxLength={40} autoComplete="name" required placeholder="Como quer ser chamado?" /></label>
@@ -103,6 +103,6 @@ export function GuestPage() {
         {room.queue.length ? <ol className="guest-queue">{room.queue.slice(0, 6).map((entry, index) => <li key={entry.id}><span className="queue-number">{String(index + 1).padStart(2, '0')}</span><span className="queue-person"><strong>{entry.name}</strong><small>{entry.song} · {entry.artist}</small></span>{entry.table && <span className="table-chip">MESA {entry.table}</span>}</li>)}</ol> : <p className="empty-copy">A fila ainda está vazia. Que tal abrir o show?</p>}
       </section>
     </main>
-    <footer className="site-footer"><span>Feito para deixar a noite fluir.</span><a href="/operador">Área do operador</a></footer>
+    <footer className="site-footer"><span>Feito para deixar a noite fluir.</span></footer>
   </div>
 }

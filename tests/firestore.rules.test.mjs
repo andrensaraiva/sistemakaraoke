@@ -35,6 +35,8 @@ try {
   const ownRef = guest.doc(`rooms/main/requests/${request.id}`)
 
   await assertSucceeds(roomRef.get())
+  await assertSucceeds(ownRef.get())
+  await assertFails(stranger.doc(`rooms/main/requests/${request.id}`).get())
   await assertFails(roomRef.update({ open: false }))
   await assertFails(ownRef.set({ ...request, status: 'queued' }))
   await assertFails(ownRef.set({ ...request, suggestedUrl: 'https://youtube.com.evil.test/watch' }))

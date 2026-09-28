@@ -32,6 +32,19 @@ Os relatórios de demonstração incluem duas noites fictícias. No Firebase, os
 6. Copie `.env.example` para `.env.local` e preencha `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID` e `VITE_FIREBASE_APP_ID` com os valores do aplicativo Web. Ajuste `VITE_VENUE_NAME` para o nome do bar.
 7. Reinicie `npm run dev`. Entre em `/operador` com a conta criada e abra a primeira noite.
 
+Se apenas parte das variáveis estiver preenchida, o site mostra um aviso de configuração. Uma versão publicada sem Firebase também mostra esse aviso, em vez de funcionar com dados isolados em cada celular. O modo demonstração continua disponível durante o desenvolvimento sem configuração.
+
+### Testar sem projeto real
+
+O arquivo `.env.emulator` já contém dados fictícios. Em dois terminais, execute:
+
+```powershell
+npx firebase emulators:start --project demo-sistema-karaoke --only auth,firestore
+npm run dev:firebase-test
+```
+
+O site local usa os emuladores de Authentication e Firestore. Eles não acessam o projeto real. Para um teste automatizado do fluxo completo, execute `npm run test:firebase`; esse comando inicia e encerra os emuladores sozinho.
+
 As regras do Firestore estão em `firestore.rules`: clientes podem criar e consultar o próprio pedido, confirmar “Estou indo” e ler a fila pública. Somente operadores cadastrados em `admins` podem aprovar, chamar, registrar falta ou mudar a ordem.
 
 ## Publicar
@@ -40,11 +53,10 @@ Depois de conectar o projeto Firebase:
 
 ```powershell
 npx firebase login
-npm run build
 npx firebase deploy --project SEU_PROJECT_ID --only firestore:rules,hosting
 ```
 
-O Firebase fornece um endereço `*.web.app` com HTTPS. **Imprima os QR codes pelo site publicado**, pois QR codes gerados no endereço `localhost` não funcionarão nos celulares das mesas.
+O deploy executa `npm run build:firebase` automaticamente e falha se faltarem variáveis ou se o ID for de demonstração. Confira se `VITE_FIREBASE_PROJECT_ID` em `.env.local` é o mesmo `SEU_PROJECT_ID` do comando. O Firebase fornece um endereço `*.web.app` com HTTPS. **Imprima os QR codes pelo site publicado**, pois QR codes gerados no endereço `localhost` não funcionarão nos celulares das mesas.
 
 ## Uso no bar
 
@@ -65,6 +77,8 @@ npm run build
 npm run lint
 npm test
 npm run test:rules
+npm run test:mobile
+npm run test:firebase
 ```
 
-`test:rules` inicia o emulador local do Firestore e exige Java 11+; não usa dados do projeto real.
+`test:rules` e `test:firebase` iniciam emuladores locais e exigem Java 11+; não usam dados do projeto real. `test:mobile` testa as telas de 390 e 320 px e o fluxo de uso em um navegador Edge instalado no computador. `test:firebase` também usa o Edge, com cliente e operador em sessões independentes.

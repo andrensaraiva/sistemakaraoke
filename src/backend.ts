@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'
+import { connectAuthEmulator, getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'
 import {
-  collection, doc, getDoc, getDocs, getFirestore, onSnapshot, query, runTransaction,
+  collection, connectFirestoreEmulator, doc, getDoc, getDocs, getFirestore, onSnapshot, query, runTransaction,
   updateDoc, where,
 } from 'firebase/firestore'
 import {
@@ -18,10 +18,25 @@ const settings = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-export const demoMode = !settings.apiKey || !settings.authDomain || !settings.projectId || !settings.appId
-const app = demoMode ? null : initializeApp(settings)
+const configValues = Object.values(settings).map((value) => value?.trim() ?? '')
+const hasAnyConfig = configValues.some(Boolean)
+const hasFullConfig = configValues.every(Boolean)
+const useEmulators = import.meta.env.DEV && import.meta.env.VITE_USE_FIREBASE_EMULATORS === 'true'
+export const demoMode = import.meta.env.DEV && !hasAnyConfig && !useEmulators
+export const firebaseConfigError = hasAnyConfig && !hasFullConfig
+  ? 'A configuração do Firebase está incompleta. Preencha as quatro variáveis em .env.local e reinicie o servidor.'
+  : useEmulators && !settings.projectId?.startsWith('demo-')
+    ? 'O modo emulador exige um projeto de teste com ID iniciado por demo-.'
+    : !hasFullConfig && !demoMode
+      ? 'Firebase não configurado. Preencha .env.local e gere uma nova versão do site.'
+      : ''
+const app = firebaseConfigError || demoMode ? null : initializeApp(settings)
 const auth = app ? getAuth(app) : null
 const db = app ? getFirestore(app) : null
+if (useEmulators && auth && db) {
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
+  connectFirestoreEmulator(db, '127.0.0.1', 8080)
+}
 const mainRoom = db ? doc(db, 'rooms', 'main') : null
 
 type Listener = () => void
@@ -84,11 +99,19 @@ function readDemo(): DemoData {
   } catch { return starterDemo() }
 }
 
-function emitDemo() {
+function notifyDemoListeners() {
   localListeners.forEach((listener) => listener())
+}
+
+function emitDemo() {
+  notifyDemoListeners()
   demoChannel?.postMessage('change')
 }
-demoChannel?.addEventListener('message', () => localListeners.forEach((listener) => listener()))
+demoChannel?.addEventListener('message', notifyDemoListeners)
+if (demoMode && typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => { if (event.key === demoKey) notifyDemoListeners() })
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) notifyDemoListeners() })
+}
 
 function mutateDemo(change: (data: DemoData) => void) {
   const data = readDemo()

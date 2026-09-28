@@ -68,7 +68,8 @@ service cloud.firestore {
       }
 
       match /requests/{requestId} {
-        allow get: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+        allow get: if isAdmin() || (signedIn() &&
+          requestId == mainRoom().nightId + '_' + request.auth.uid);
         allow list: if isAdmin();
         allow create: if signedIn() && validGuestRequest(request.resource.data, requestId);
         allow update: if isAdmin() || (
