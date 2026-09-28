@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+
+    function mainRoom() {
+      return get(/databases/$(database)/documents/rooms/main).data;
+    }
+
+    function validVideoUrl(value) {
+      return value is string && value.size() <= 500 && (
+        value == '' ||
+        value.matches('^https://(www[.]|m[.])?youtube[.]com/.*$') ||
+        value.matches('^https://(www[.])?youtu[.]be/.*$')
+      );
+    }
+
+    function validGuestRequest(data, requestId) {
+      return data.keys().hasAll([
+          'id', 'nightId', 'ownerUid', 'name', 'table', 'song', 'artist',
+          'suggestedUrl', 'selectedUrl', 'status', 'misses', 'onMyWay', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'id', 'nightId', 'ownerUid', 'name', 'table', 'song', 'artist',
+          'suggestedUrl', 'selectedUrl', 'status', 'misses', 'onMyWay', 'createdAt'
+        ]) &&
+        mainRoom().open == true &&
+        data.id == requestId &&
+        data.nightId == mainRoom().nightId &&
+        requestId == data.nightId + '_' + request.auth.uid &&
+        data.ownerUid == request.auth.uid &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 40 &&
+        data.table is string && data.table.size() <= 10 &&
+        data.song is string && data.song.size() > 0 && data.song.size() <= 100 &&
+        data.artist is string && data.artist.size() > 0 && data.artist.size() <= 100 &&
+        validVideoUrl(data.suggestedUrl) &&
+        data.selectedUrl == '' &&
+        data.status == 'pending' &&
+        data.misses == 0 &&
+        data.onMyWay == false &&
+        data.createdAt is int;
+    }
+
+    match /admins/{adminId} {
+      allow get: if signedIn() && request.auth.uid == adminId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /rooms/{roomId} {
+      allow get: if roomId == 'main';
+      allow list: if false;
+      allow create, update, delete: if roomId == 'main' && isAdmin();
+
+      match /requests/{requestId} {
+        allow get: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
+        allow list: if isAdmin();
+        allow create: if signedIn() && validGuestRequest(request.resource.data, requestId);
+        allow update: if isAdmin() || (
+          signedIn() && resource.data.ownerUid == request.auth.uid && (
+            (resource.data.status in ['completed', 'removed', 'rejected', 'cancelled'] &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                'name', 'table', 'song', 'artist', 'suggestedUrl', 'selectedUrl',
+                'status', 'misses', 'onMyWay', 'createdAt'
+              ]) && validGuestRequest(request.resource.data, requestId)) ||
+            (resource.data.status == 'calling' && resource.data.onMyWay == false &&
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onMyWay']) &&
+              request.resource.data.onMyWay == true)
+          )
+        );
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
