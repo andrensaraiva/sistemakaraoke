@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "node --experimental-strip-types --test tests/domain.test.mjs",
+    "test": "node --experimental-strip-types --test tests/domain.test.mjs tests/reports.test.mjs",
     "test:rules": "firebase emulators:exec --project demo-sistema-karaoke --only firestore \"node tests/firestore.rules.test.mjs\"",
     "lint": "oxlint",
     "preview": "vite preview"

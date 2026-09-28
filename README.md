@@ -15,9 +15,12 @@ Sem configuração do Firebase, o projeto abre em **modo demonstração**. Os da
 
 - `/` ou `/mesa/04`: pedido do cliente. A mesa é opcional; o QR de uma mesa já preenche o número.
 - `/operador`: aprovação, escolha da versão, fila, chamada e ausências.
+- `/operador/relatorios`: histórico das noites, rankings de músicas e artistas, horário com mais pedidos e resumo CSV para divulgação.
 - `/telao`: fila pública e chamada de 10 segundos.
 
 Na demonstração há três cantores fictícios para testar a fila. Para apagar a demonstração, limpe os dados deste site no navegador.
+
+Os relatórios de demonstração incluem duas noites fictícias. No Firebase, os dados passam a ser reais e somente operadores autorizados podem ler o histórico. Pedidos encerrados são arquivados antes de uma nova música do mesmo celular substituir o pedido atual, mantendo as contagens corretas.
 
 ## Conectar ao Firebase gratuito
 
@@ -51,6 +54,7 @@ O Firebase fornece um endereço `*.web.app` com HTTPS. **Imprima os QR codes pel
 - Após os 10 segundos de chamada, o operador pode iniciar a música, dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.
 - Cada navegador só consegue manter um pedido ativo por noite. Quando a mesa é informada, a aprovação também impede dois pedidos com o mesmo nome e mesa. Sem mesa, o operador confere possíveis duplicatas pelo nome.
 - “Encerrar novos pedidos” preserva a fila atual. “Começar nova noite” cria uma fila nova.
+- Em “Relatórios”, filtre todas as noites, os últimos 30 ou 90 dias ou uma noite específica. O CSV contém números agregados, sem nomes de clientes. Atualize os dados pelo botão quando a noite mudar.
 
 Os avisos no celular aparecem **enquanto a página está aberta**. Notificações quando o navegador está fechado, SMS e WhatsApp não fazem parte desta primeira versão. O telão e a chamada do operador continuam sendo os meios principais de convocação.
 

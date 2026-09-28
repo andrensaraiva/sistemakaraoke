@@ -10,9 +10,10 @@ export default function App() {
   const path = window.location.pathname
   useEffect(() => {
     if (path === '/operador') document.title = `Painel · ${venueName}`
+    if (path === '/operador/relatorios') document.title = `Relatórios · ${venueName}`
     if (path === '/telao') document.title = `Telão · ${venueName}`
   }, [path])
-  if (path === '/operador') return <OperatorPage />
+  if (path === '/operador' || path === '/operador/relatorios') return <OperatorPage />
   if (path === '/telao') return <TvPage />
   if (path === '/imprimir') return <PrintPage />
   return <GuestPage />

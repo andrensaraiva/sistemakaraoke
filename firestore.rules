@@ -59,6 +59,14 @@ service cloud.firestore {
       allow list: if false;
       allow create, update, delete: if roomId == 'main' && isAdmin();
 
+      match /nights/{nightId} {
+        allow read, write: if roomId == 'main' && isAdmin();
+      }
+
+      match /archive/{archiveId} {
+        allow read, write: if roomId == 'main' && isAdmin();
+      }
+
       match /requests/{requestId} {
         allow get: if isAdmin() || (signedIn() && resource.data.ownerUid == request.auth.uid);
         allow list: if isAdmin();

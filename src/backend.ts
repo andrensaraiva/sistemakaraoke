@@ -1,14 +1,15 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'
 import {
-  collection, doc, getDoc, getFirestore, onSnapshot, query, runTransaction,
-  setDoc, updateDoc, where,
+  collection, doc, getDoc, getDocs, getFirestore, onSnapshot, query, runTransaction,
+  updateDoc, where,
 } from 'firebase/firestore'
 import {
   callNext as advanceCall, emptyRoom, finishSong, markNoShow,
   nextEligibleIndex, removeFromQueue, singerAlreadyQueued, terminalStatuses, toQueueEntry,
   type Room, type SongRequest,
 } from './domain'
+import { mergeReportRequests, type NightRecord, type ReportData } from './reports'
 
 const settings = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -24,28 +25,62 @@ const db = app ? getFirestore(app) : null
 const mainRoom = db ? doc(db, 'rooms', 'main') : null
 
 type Listener = () => void
-type DemoData = { room: Room; requests: SongRequest[] }
+type DemoData = { room: Room; requests: SongRequest[]; archive: SongRequest[]; nights: NightRecord[] }
 const demoKey = 'karaoke-retro-demo-v1'
 const demoChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(demoKey) : null
 const localListeners = new Set<Listener>()
 
 function starterDemo(): DemoData {
+  const now = Date.now()
+  const day = 24 * 60 * 60 * 1000
   const nightId = 'demonstracao'
   const requests: SongRequest[] = [
-    { id: 'sample-ana', nightId, ownerUid: 'sample-ana', name: 'Ana', table: '03', song: 'Evidências', artist: 'Chitãozinho & Xororó', suggestedUrl: '', selectedUrl: '', status: 'queued', misses: 0, onMyWay: false, createdAt: 1 },
-    { id: 'sample-bruno', nightId, ownerUid: 'sample-bruno', name: 'Bruno', table: '07', song: 'Tempo Perdido', artist: 'Legião Urbana', suggestedUrl: '', selectedUrl: '', status: 'queued', misses: 0, onMyWay: false, createdAt: 2 },
-    { id: 'sample-carla', nightId, ownerUid: 'sample-carla', name: 'Carla', table: '02', song: 'Dona de Mim', artist: 'Iza', suggestedUrl: '', selectedUrl: '', status: 'queued', misses: 0, onMyWay: false, createdAt: 3 },
+    { id: 'sample-ana', nightId, ownerUid: 'sample-ana', name: 'Ana', table: '03', song: 'Evidências', artist: 'Chitãozinho & Xororó', suggestedUrl: '', selectedUrl: '', status: 'queued', misses: 0, onMyWay: false, createdAt: now - 18 * 60_000 },
+    { id: 'sample-bruno', nightId, ownerUid: 'sample-bruno', name: 'Bruno', table: '07', song: 'Tempo Perdido', artist: 'Legião Urbana', suggestedUrl: '', selectedUrl: '', status: 'queued', misses: 0, onMyWay: false, createdAt: now - 12 * 60_000 },
+    { id: 'sample-carla', nightId, ownerUid: 'sample-carla', name: 'Carla', table: '02', song: 'Dona de Mim', artist: 'Iza', suggestedUrl: '', selectedUrl: '', status: 'queued', misses: 0, onMyWay: false, createdAt: now - 5 * 60_000 },
+  ]
+  const pastNights: NightRecord[] = [
+    { id: 'demo-sexta', startedAt: now - 7 * day, endedAt: now - 7 * day + 4 * 60 * 60_000 },
+    { id: 'demo-sabado', startedAt: now - 14 * day, endedAt: now - 14 * day + 5 * 60 * 60_000 },
+  ]
+  const sample = (night: NightRecord, index: number, name: string, song: string, artist: string, status: SongRequest['status']): SongRequest => ({
+    id: `demo-${night.id}-${index}`, nightId: night.id, ownerUid: `demo-${night.id}-${index}`,
+    name, table: index % 2 ? '04' : '', song, artist, suggestedUrl: '', selectedUrl: '', status,
+    misses: status === 'cancelled' ? 1 : 0, onMyWay: false, createdAt: night.startedAt + index * 37 * 60_000,
+  })
+  const archive = [
+    sample(pastNights[0], 1, 'Bia', 'Evidências', 'Chitãozinho & Xororó', 'completed'),
+    sample(pastNights[0], 2, 'Rafa', 'Tempo Perdido', 'Legião Urbana', 'completed'),
+    sample(pastNights[0], 3, 'Lu', 'Evidências', 'Chitãozinho & Xororó', 'completed'),
+    sample(pastNights[0], 4, 'Gui', 'Pescador de Ilusões', 'O Rappa', 'cancelled'),
+    sample(pastNights[1], 1, 'Nina', 'Dona de Mim', 'Iza', 'completed'),
+    sample(pastNights[1], 2, 'Caio', 'Evidencias', 'Chitãozinho & Xororó', 'completed'),
+    sample(pastNights[1], 3, 'Mari', 'Tempo Perdido', 'Legião Urbana', 'completed'),
+    sample(pastNights[1], 4, 'João', 'Anna Júlia', 'Los Hermanos', 'rejected'),
+    sample(pastNights[1], 5, 'Lia', 'Dona de Mim', 'IZA', 'completed'),
   ]
   return {
     room: { ...emptyRoom, nightId, open: true, queue: requests.map(toQueueEntry) },
-    requests,
+    requests, archive,
+    nights: [{ id: nightId, startedAt: now - 20 * 60_000, endedAt: null }, ...pastNights],
   }
 }
 
 function readDemo(): DemoData {
   try {
     const saved = localStorage.getItem(demoKey)
-    return saved ? JSON.parse(saved) as DemoData : starterDemo()
+    if (!saved) return starterDemo()
+    const data = JSON.parse(saved) as DemoData
+    if (!data.nights) {
+      const examples = starterDemo()
+      data.nights = [
+        { id: data.room.nightId, startedAt: Math.min(...data.requests.filter((item) => item.createdAt > 1e12).map((item) => item.createdAt), Date.now()), endedAt: null },
+        ...examples.nights.slice(1),
+      ]
+      data.archive = examples.archive
+      localStorage.setItem(demoKey, JSON.stringify(data))
+    }
+    return data
   } catch { return starterDemo() }
 }
 
@@ -71,6 +106,35 @@ function listenDemo(listener: Listener): Listener {
 function requestRef(id: string) {
   if (!db) throw new Error('Firebase não configurado.')
   return doc(db, 'rooms', 'main', 'requests', id)
+}
+
+function nightRef(id: string) {
+  if (!db) throw new Error('Firebase não configurado.')
+  return doc(db, 'rooms', 'main', 'nights', id)
+}
+
+function archiveRef(request: SongRequest) {
+  if (!db) throw new Error('Firebase não configurado.')
+  return doc(db, 'rooms', 'main', 'archive', `${request.id}_${request.createdAt}`)
+}
+
+export async function loadReports(): Promise<ReportData> {
+  if (demoMode) {
+    const data = readDemo()
+    return { nights: data.nights, requests: mergeReportRequests(data.requests, data.archive) }
+  }
+  const [nights, requests, archive] = await Promise.all([
+    getDocs(collection(db!, 'rooms', 'main', 'nights')),
+    getDocs(collection(db!, 'rooms', 'main', 'requests')),
+    getDocs(collection(db!, 'rooms', 'main', 'archive')),
+  ])
+  return {
+    nights: nights.docs.map((item) => item.data() as NightRecord),
+    requests: mergeReportRequests(
+      requests.docs.map((item) => item.data() as SongRequest),
+      archive.docs.map((item) => item.data() as SongRequest),
+    ),
+  }
 }
 
 function assertRoom(room: Room | undefined): asserts room is Room {
@@ -160,9 +224,33 @@ export async function submitRequest(room: Room, uid: string, values: Pick<SongRe
 }
 
 export async function openNight() {
+  const now = Date.now()
   const room: Room = { ...emptyRoom, nightId: crypto.randomUUID(), open: true }
-  if (demoMode) { mutateDemo((data) => { data.room = room }); return }
-  await setDoc(mainRoom!, room)
+  const night: NightRecord = { id: room.nightId, startedAt: now, endedAt: null }
+  if (demoMode) {
+    mutateDemo((data) => {
+      const previous = data.nights.find((item) => item.id === data.room.nightId)
+      if (previous && previous.endedAt === null) previous.endedAt = now
+      data.room = room
+      data.nights.unshift(night)
+    })
+    return
+  }
+  await runTransaction(db!, async (transaction) => {
+    const previousRoomSnapshot = await transaction.get(mainRoom!)
+    const previousRoom = previousRoomSnapshot.data() as Room | undefined
+    const previousNightSnapshot = previousRoom?.nightId ? await transaction.get(nightRef(previousRoom.nightId)) : null
+    if (previousRoom?.nightId) {
+      const previousNight = previousNightSnapshot?.data() as NightRecord | undefined
+      transaction.set(nightRef(previousRoom.nightId), {
+        id: previousRoom.nightId,
+        startedAt: previousNight?.startedAt ?? now,
+        endedAt: now,
+      } satisfies NightRecord)
+    }
+    transaction.set(mainRoom!, room)
+    transaction.set(nightRef(night.id), night)
+  })
 }
 
 export async function closeNight() {
@@ -207,6 +295,7 @@ export async function rejectRequest(id: string) {
       assertRequest(request)
       if (request.status !== 'pending') throw new Error('Este pedido já foi tratado.')
       request.status = 'rejected'
+      data.archive.push({ ...request })
     })
     return
   }
@@ -216,6 +305,7 @@ export async function rejectRequest(id: string) {
     assertRequest(request)
     if (request.status !== 'pending') throw new Error('Este pedido já foi tratado.')
     transaction.update(requestRef(id), { status: 'rejected' })
+    transaction.set(archiveRef(request), { ...request, status: 'rejected', closedAt: Date.now() })
   })
 }
 
@@ -275,6 +365,7 @@ export async function completeSong() {
       const request = data.requests.find((item) => item.id === data.room.queue[0]?.id)
       assertRequest(request)
       data.room = finishSong(data.room, request); request.status = 'completed'
+      data.archive.push({ ...request })
     })
     return
   }
@@ -289,6 +380,7 @@ export async function completeSong() {
     assertRequest(request)
     transaction.set(mainRoom!, finishSong(room, request))
     transaction.update(requestRef(id), { status: 'completed' })
+    transaction.set(archiveRef(request), { ...request, status: 'completed', closedAt: Date.now() })
   })
 }
 
@@ -325,6 +417,7 @@ export async function cancelRequest(id: string) {
       assertRequest(request)
       if (terminalStatuses.includes(request.status)) return
       request.status = 'cancelled'; data.room = removeFromQueue(data.room, id)
+      data.archive.push({ ...request })
     })
     return
   }
@@ -337,6 +430,7 @@ export async function cancelRequest(id: string) {
     if (terminalStatuses.includes(request.status)) return
     transaction.set(mainRoom!, removeFromQueue(room, id))
     transaction.update(requestRef(id), { status: 'cancelled' })
+    transaction.set(archiveRef(request), { ...request, status: 'cancelled', closedAt: Date.now() })
   })
 }
 

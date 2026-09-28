@@ -8,11 +8,13 @@ import {
 import { nextEligibleIndex, youtubeSearch, youtubeUrl, type QueueEntry, type SongRequest } from '../domain'
 import { Brand, DemoBanner } from './Brand'
 import { useCountdown, useRequests, useRoom } from './hooks'
+import { ReportsPage } from './ReportsPage'
 import { venueName } from './venue'
 
 type RunAction = (action: () => Promise<void>, success?: string) => Promise<void>
 
 export function OperatorPage() {
+  const reportRoute = window.location.pathname === '/operador/relatorios'
   const room = useRoom()
   const [admin, setAdmin] = useState({ ready: demoMode, allowed: demoMode, email: demoMode ? 'Modo de demonstração' : '' })
   const [credentials, setCredentials] = useState({ email: '', password: '' })
@@ -20,7 +22,7 @@ export function OperatorPage() {
   const [busy, setBusy] = useState(false)
   const [tableCount, setTableCount] = useState(12)
   useEffect(() => watchAdmin(setAdmin), [])
-  const requests = useRequests(room.nightId, admin.allowed)
+  const requests = useRequests(room.nightId, admin.allowed && !reportRoute)
   const pending = requests.filter((request) => request.status === 'pending').sort((a, b) => a.createdAt - b.createdAt)
   const byId = useMemo(() => new Map(requests.map((request) => [request.id, request])), [requests])
   const current = room.stage !== 'idle' ? byId.get(room.queue[0]?.id) : null
@@ -52,8 +54,10 @@ export function OperatorPage() {
     {admin.email ? <><p className="feedback">Este usuário ainda não foi autorizado como operador.</p><button className="button button-outline" onClick={() => doAction(signOutAdmin)}>Sair desta conta</button></> : <form onSubmit={handleLogin}><label>E-mail<input type="email" required value={credentials.email} onChange={(event) => setCredentials({ ...credentials, email: event.target.value })} /></label><label>Senha<input type="password" required value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} /></label><button className="button button-primary" type="submit" disabled={busy}>Entrar no painel</button></form>}
     {notice && <p className="feedback" role="alert">{notice}</p>}</div></div>
 
+  if (reportRoute) return <ReportsPage room={room} />
+
   return <div className="operator-shell"><DemoBanner />
-    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href="/" target="_blank" rel="noreferrer">Visão do cliente ↗</a><a href="/telao" target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => doAction(signOutAdmin)}>Sair</button>}</nav></header>
+    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href="/operador/relatorios">Relatórios ↗</a><a href="/" target="_blank" rel="noreferrer">Visão do cliente ↗</a><a href="/telao" target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => doAction(signOutAdmin)}>Sair</button>}</nav></header>
     <main className="operator-main"><div className="operator-title"><div><span className="section-kicker">CENTRAL DO KARAOKÊ</span><h1>Painel da noite<span className="title-spark">✦</span></h1><p>Pedidos, palco e próxima música em um só lugar.</p></div><span className={`session-pill ${room.open ? 'session-open' : ''}`}>{room.open ? '● Noite aberta' : '○ Noite fechada'}</span></div>
       {!room.nightId ? <section className="card setup-card"><div><span className="section-kicker">COMEÇAR</span><h2>Abra a noite para receber pedidos</h2><p>Você decide durante cada chamada se a pessoa ganha outra chance.</p></div><div className="setup-actions"><button className="button button-primary" disabled={busy} onClick={() => doAction(openNight, 'Noite aberta. Os QR codes já podem ser usados.')}>Abrir nova noite ↗</button></div></section> : <>
         {!room.open && <div className="closed-notice" role="status">Pedidos encerrados. A fila atual continua em andamento. <button className="mini-button" disabled={busy} onClick={() => doAction(reopenNight, 'Pedidos reabertos.')}>Reabrir pedidos</button></div>}
