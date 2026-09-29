@@ -304,7 +304,7 @@ export async function approveRequest(id: string, selectedUrl: string) {
     const room = roomSnapshot.data() as Room | undefined
     const request = requestSnapshot.data() as SongRequest | undefined
     assertRoom(room); assertRequest(request)
-    if (!room.open || request.nightId !== room.nightId || request.status !== 'pending') throw new Error('Este pedido não pode mais ser aprovado.')
+    if (request.nightId !== room.nightId || request.status !== 'pending') throw new Error('Este pedido não pode mais ser aprovado.')
     if (singerAlreadyQueued(room, request)) throw new Error('Já existe um pedido com este nome e mesa na fila.')
     transaction.update(requestRef(id), { status: 'queued', selectedUrl })
     transaction.update(mainRoom!, { queue: [...room.queue, toQueueEntry(request)] })

@@ -46,6 +46,11 @@ try {
   await operator.goto(`${origin}/operador`)
   await operator.getByRole('heading', { name: 'Música Mobile' }).waitFor()
   await audit(operator, 'operador 390px')
+  await operator.getByRole('button', { name: 'Encerrar novos pedidos' }).click()
+  await operator.getByRole('dialog', { name: 'Encerrar novos pedidos?' }).waitFor()
+  await audit(operator, 'confirmação 390px')
+  await operator.getByRole('button', { name: 'Continuar recebendo' }).click()
+  await operator.getByText('Noite aberta', { exact: false }).first().waitFor()
   const pendingTop = await operator.locator('.pending-list').boundingBox()
   const queueTop = await operator.locator('.operator-queue').boundingBox()
   assert.ok(pendingTop.y < queueTop.y, 'Novos pedidos devem aparecer antes da fila no celular')
@@ -76,6 +81,10 @@ try {
   await guest.bringToFront()
   await guest.getByRole('heading', { name: 'Valeu pelo show!' }).waitFor()
 
+  await operator.getByRole('button', { name: 'Encerrar novos pedidos' }).click()
+  await operator.getByRole('button', { name: 'Encerrar pedidos', exact: true }).click()
+  await operator.getByText('Pedidos encerrados. A fila atual continua em andamento.').waitFor()
+
   await operator.goto(`${origin}/operador/relatorios`)
   await operator.getByRole('heading', { name: 'Relatórios da casa' }).waitFor()
   await operator.getByText('Músicas mais pedidas').waitFor()
@@ -95,6 +104,10 @@ try {
   await operator.goto(`${origin}/operador/relatorios`)
   await operator.getByText('Músicas mais pedidas').waitFor()
   await audit(operator, 'relatórios 320px')
+  await operator.goto(`${origin}/imprimir`)
+  assert.equal(await operator.locator('.print-single').count(), 1, 'A impressão padrão deve mostrar um único QR')
+  await operator.goto(`${origin}/imprimir?mesas=2`)
+  assert.equal(await operator.locator('.print-card').count(), 2, 'As cartelas por mesa continuam disponíveis')
   console.log('Fluxo móvel: pedido sem mesa, aprovação e relatórios verificados.')
   await context.close()
 } finally {

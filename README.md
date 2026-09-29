@@ -2,6 +2,16 @@
 
 Sistema web para pedidos de karaokê pelo celular, fila ao vivo, painel do operador e telão. A reprodução das músicas fica com o operador. A mesa é opcional.
 
+## Projeto Firebase ativo
+
+Esta instalação está ligada ao projeto `sistemakaraoke-andre` no plano Spark. O Firestore Standard fica em São Paulo (`southamerica-east1`), com autenticação anônima para clientes e e-mail/senha para operadores.
+
+- Site: https://sistemakaraoke-andre.web.app
+- Operador: https://sistemakaraoke-andre.web.app/operador
+- Telão: https://sistemakaraoke-andre.web.app/telao
+
+Nesta máquina, `.env.local` contém a configuração do aplicativo Web e `.operator-credentials.local` contém o acesso inicial do operador. Esses arquivos são ignorados pelo Git. A primeira noite foi aberta para validar o site. O painel mostra se novos pedidos estão abertos ou fechados.
+
 ## Ver a demonstração
 
 Requer Node.js 20.19+ ou 22.12+.
@@ -11,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Sem configuração do Firebase, o projeto abre em **modo demonstração**. Os dados ficam no armazenamento deste navegador e são compartilhados entre abas abertas no mesmo computador. As três telas são:
+Em uma cópia sem `.env.local`, o projeto abre em **modo demonstração**. Os dados ficam no armazenamento deste navegador e são compartilhados entre abas abertas no mesmo computador. As telas são:
 
 - `/` ou `/mesa/04`: pedido do cliente. A mesa é opcional; o QR de uma mesa já preenche o número.
 - `/operador`: aprovação, escolha da versão, fila, chamada e ausências.
@@ -26,7 +36,7 @@ Os relatórios de demonstração incluem duas noites fictícias. No Firebase, os
 
 1. Crie um projeto no [Firebase Console](https://console.firebase.google.com/) no plano **Spark** e registre um aplicativo Web.
 2. Ative **Firestore Database** no modo de produção (edição Standard).
-3. Em **Authentication → Sign-in method**, ative **E-mail/senha** e **Anônimo**.
+3. A configuração de **E-mail/senha** e **Anônimo** está em `firebase.json`. Publique-a com `npx firebase deploy --only auth --project SEU_PROJECT_ID` ou ative os dois métodos em **Authentication → Sign-in method**.
 4. Em **Authentication → Users**, crie o usuário do operador e copie o **UID** dele.
 5. No Firestore, crie a coleção `admins` e um documento cujo ID seja esse UID. Adicione o campo `active` com valor booleano `true`. Esse campo permite acesso ao painel; altere para `false` para revogar. Crie administradores apenas pelo console do Firebase.
 6. Copie `.env.example` para `.env.local` e preencha `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID` e `VITE_FIREBASE_APP_ID` com os valores do aplicativo Web. Ajuste `VITE_VENUE_NAME` para o nome do bar.
@@ -53,10 +63,12 @@ Depois de conectar o projeto Firebase:
 
 ```powershell
 npx firebase login
-npx firebase deploy --project SEU_PROJECT_ID --only firestore:rules,hosting
+npx firebase deploy --project SEU_PROJECT_ID --only auth,firestore:rules,hosting
 ```
 
 O deploy executa `npm run build:firebase` automaticamente e falha se faltarem variáveis ou se o ID for de demonstração. Confira se `VITE_FIREBASE_PROJECT_ID` em `.env.local` é o mesmo `SEU_PROJECT_ID` do comando. O Firebase fornece um endereço `*.web.app` com HTTPS. **Imprima os QR codes pelo site publicado**, pois QR codes gerados no endereço `localhost` não funcionarão nos celulares das mesas.
+
+Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `npx.cmd` no lugar de `npm` e `npx`.
 
 ## Uso no bar
 
@@ -65,7 +77,8 @@ O deploy executa `npm run build:firebase` automaticamente e falha se faltarem va
 - O operador escolhe e toca o vídeo. O sistema não inicia músicas automaticamente.
 - Após os 10 segundos de chamada, o operador pode iniciar a música, dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.
 - Cada navegador só consegue manter um pedido ativo por noite. Quando a mesa é informada, a aprovação também impede dois pedidos com o mesmo nome e mesa. Sem mesa, o operador confere possíveis duplicatas pelo nome.
-- “Encerrar novos pedidos” preserva a fila atual. “Começar nova noite” cria uma fila nova.
+- O **QR único** do painel e do telão abre o formulário sem mesa preenchida. Use **Imprimir QR único** para gerar um cartaz. As cartelas por mesa continuam guardadas na seção “QR por mesa (para usar depois)”. Gere os QR pelo site publicado.
+- “Encerrar novos pedidos” pede confirmação, bloqueia novos pedidos e preserva a fila atual. É possível reabrir os pedidos; “Começar nova noite” cria uma fila nova.
 - Em “Relatórios”, filtre todas as noites, os últimos 30 ou 90 dias ou uma noite específica. O CSV contém números agregados, sem nomes de clientes. Atualize os dados pelo botão quando a noite mudar.
 
 Os avisos no celular aparecem **enquanto a página está aberta**. Notificações quando o navegador está fechado, SMS e WhatsApp não fazem parte desta primeira versão. O telão e a chamada do operador continuam sendo os meios principais de convocação.

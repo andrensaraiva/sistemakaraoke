@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   approveRequest, callNextSinger, cancelRequest, closeNight, completeSong,
@@ -9,7 +9,6 @@ import { nextEligibleIndex, youtubeSearch, youtubeUrl, type QueueEntry, type Son
 import { Brand, DemoBanner } from './Brand'
 import { useCountdown, useRequests, useRoom } from './hooks'
 import { ReportsPage } from './ReportsPage'
-import { venueName } from './venue'
 
 type RunAction = (action: () => Promise<void>, success?: string) => Promise<void>
 
@@ -21,6 +20,7 @@ export function OperatorPage() {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [tableCount, setTableCount] = useState(12)
+  const closeDialogRef = useRef<HTMLDialogElement>(null)
   useEffect(() => watchAdmin(setAdmin), [])
   const requests = useRequests(room.nightId, admin.allowed && !reportRoute)
   const pending = requests.filter((request) => request.status === 'pending').sort((a, b) => a.createdAt - b.createdAt)
@@ -78,12 +78,13 @@ export function OperatorPage() {
           <section className="card operator-section"><div className="section-heading-row"><div><span className="section-kicker">CHEGANDO AGORA</span><h2>Novos pedidos</h2></div><span className="section-count">{pending.length}</span></div>
             {pending.length ? <div className="pending-list">{pending.map((request) => <PendingCard key={request.id} request={request} busy={busy} onAction={doAction} />)}</div> : <p className="empty-copy">Nenhum pedido aguardando aprovação.</p>}
           </section>
-          <section className="card settings-card"><span className="section-kicker">AJUSTES DA NOITE</span><h2>Operação</h2><p className="helper">Em cada chamada, escolha se o cantor volta para a fila ou se o pedido é cancelado.</p>{room.open ? <button className="text-button" onClick={() => { if (window.confirm('Encerrar os pedidos desta noite? A fila atual continuará visível.')) doAction(closeNight) }}>Encerrar novos pedidos</button> : <button className="text-button" onClick={() => { if (window.confirm('Começar uma nova noite? A fila atual será arquivada e deixará de aparecer.')) doAction(openNight, 'Nova noite aberta.') }}>Começar nova noite</button>}</section>
-          <section className="card qr-card"><span className="section-kicker">QR DAS MESAS</span><h2>Pronto para imprimir</h2><p>O QR abre o formulário com o número da mesa preenchido.</p><label>Número de mesas<input type="number" min={1} max={80} value={tableCount} onChange={(event) => setTableCount(Math.min(80, Math.max(1, Number(event.target.value) || 1)))} /></label><div className="qr-preview"><QRCodeSVG value={`${window.location.origin}/mesa/01`} size={112} marginSize={1} /><span>Mesa 01<br /><small>{venueName}</small></span></div><button className="button button-outline" onClick={() => window.open(`/imprimir?mesas=${tableCount}`, '_blank')}>Abrir cartelas para impressão ↗</button></section>
+          <section className="card settings-card"><span className="section-kicker">AJUSTES DA NOITE</span><h2>Operação</h2><p className="helper">Em cada chamada, escolha se o cantor volta para a fila ou se o pedido é cancelado.</p>{room.open ? <button className="text-button" disabled={busy} onClick={() => closeDialogRef.current?.showModal()}>Encerrar novos pedidos</button> : <button className="text-button" onClick={() => { if (window.confirm('Começar uma nova noite? A fila atual será arquivada e deixará de aparecer.')) doAction(openNight, 'Nova noite aberta.') }}>Começar nova noite</button>}</section>
+          <section className="card qr-card"><span className="section-kicker">QR ÚNICO</span><h2>Um código para todos</h2><p>Todos acessam o mesmo formulário. A mesa continua opcional para quem fizer o pedido.</p><div className="qr-preview"><QRCodeSVG value={`${window.location.origin}/`} size={152} marginSize={1} /><span>Peça sua música<br /><small>{window.location.host}</small></span></div><button className="button button-outline" onClick={() => window.open('/imprimir', '_blank')}>Imprimir QR único ↗</button><details className="table-qr-details"><summary>QR por mesa (para usar depois)</summary><p>Cartelas com o número da mesa preenchido automaticamente.</p><label>Número de mesas<input type="number" min={1} max={80} value={tableCount} onChange={(event) => setTableCount(Math.min(80, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="button button-outline" onClick={() => window.open(`/imprimir?mesas=${tableCount}`, '_blank')}>Abrir cartelas por mesa ↗</button></details></section>
         </aside></section>
       </>}
       {notice && <p className="feedback operator-feedback" role="status">{notice}</p>}
     </main>
+    <dialog ref={closeDialogRef} className="confirm-dialog" aria-labelledby="close-dialog-title" aria-describedby="close-dialog-description"><span className="section-kicker">CONFIRMAR ALTERAÇÃO</span><h2 id="close-dialog-title">Encerrar novos pedidos?</h2><p id="close-dialog-description">Ninguém poderá enviar pedidos novos. Você ainda poderá aprovar os pedidos pendentes, concluir a fila atual e reabrir os pedidos depois.</p><div className="dialog-actions"><button className="button button-outline" autoFocus onClick={() => closeDialogRef.current?.close()}>Continuar recebendo</button><button className="button button-primary" disabled={busy} onClick={() => { closeDialogRef.current?.close(); void doAction(closeNight, 'Pedidos encerrados. A fila atual continua visível.') }}>Encerrar pedidos</button></div></dialog>
   </div>
 }
 
