@@ -9,6 +9,7 @@
     "rules": "firestore.rules"
   },
   "hosting": {
+    "target": "karaoke",
     "public": "dist",
     "predeploy": ["npm run build:firebase"],
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],

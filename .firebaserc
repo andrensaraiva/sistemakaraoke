@@ -1,5 +1,12 @@
 {
   "projects": {
     "default": "sistemakaraoke-andre"
+  },
+  "targets": {
+    "sistemakaraoke-andre": {
+      "hosting": {
+        "karaoke": ["karaokedacasa"]
+      }
+    }
   }
 }

@@ -6,9 +6,11 @@ Sistema web para pedidos de karaokê pelo celular, fila ao vivo, painel do opera
 
 Esta instalação está ligada ao projeto `sistemakaraoke-andre` no plano Spark. O Firestore Standard fica em São Paulo (`southamerica-east1`), com autenticação anônima para clientes e e-mail/senha para operadores.
 
-- Site: https://sistemakaraoke-andre.web.app
-- Operador: https://sistemakaraoke-andre.web.app/operador
-- Telão: https://sistemakaraoke-andre.web.app/telao
+- Site: https://karaokedacasa.web.app
+- Operador: https://karaokedacasa.web.app/operador
+- Telão: https://karaokedacasa.web.app/telao
+
+O endereço anterior `https://sistemakaraoke-andre.web.app` continua ativo como site padrão do mesmo projeto Firebase. O alvo `karaoke` em `.firebaserc` publica somente no novo endereço.
 
 Nesta máquina, `.env.local` contém a configuração do aplicativo Web e `.operator-credentials.local` contém o acesso inicial do operador. Esses arquivos são ignorados pelo Git. A primeira noite foi aberta para validar o site. O painel mostra se novos pedidos estão abertos ou fechados.
 
@@ -59,14 +61,13 @@ As regras do Firestore estão em `firestore.rules`: clientes podem criar e consu
 
 ## Publicar
 
-Depois de conectar o projeto Firebase:
+Para atualizar o site `karaokedacasa.web.app` no projeto ativo:
 
 ```powershell
-npx firebase login
-npx firebase deploy --project SEU_PROJECT_ID --only auth,firestore:rules,hosting
+npx.cmd firebase deploy --project sistemakaraoke-andre --only hosting:karaoke
 ```
 
-O deploy executa `npm run build:firebase` automaticamente e falha se faltarem variáveis ou se o ID for de demonstração. Confira se `VITE_FIREBASE_PROJECT_ID` em `.env.local` é o mesmo `SEU_PROJECT_ID` do comando. O Firebase fornece um endereço `*.web.app` com HTTPS. **Imprima os QR codes pelo site publicado**, pois QR codes gerados no endereço `localhost` não funcionarão nos celulares das mesas.
+Para publicar mudanças nas regras ou nos métodos de login, use `npx.cmd firebase deploy --project sistemakaraoke-andre --only auth,firestore:rules`. O deploy do site executa `npm run build:firebase` automaticamente e falha se faltarem variáveis ou se o ID for de demonstração. Confira se `VITE_FIREBASE_PROJECT_ID` em `.env.local` é `sistemakaraoke-andre`. **Imprima os QR codes pelo novo site publicado**, pois QR codes gerados no endereço antigo ou em `localhost` não abrirão o novo endereço nos celulares das mesas.
 
 Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `npx.cmd` no lugar de `npm` e `npx`.
 
