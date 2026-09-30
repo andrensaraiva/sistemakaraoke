@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
-  approveRequest, callNextSinger, cancelRequest, closeNight, completeSong, confirmSingerPresence,
+  approveRequest, callNextSinger, cancelRequest, changeTvMode, closeNight, completeSong, confirmSingerPresence,
   demoMode, markAbsent, moveQueueEntry, openNight, rejectRequest, reopenNight, saveSelectedUrl,
   signInAdmin, signOutAdmin, startSong, watchAdmin,
 } from '../backend'
@@ -15,6 +15,7 @@ type RunAction = (action: () => Promise<void>, success?: string) => Promise<void
 export function OperatorPage() {
   const reportRoute = window.location.pathname === '/operador/relatorios'
   const room = useRoom()
+  const tvMode = room.tvMode ?? 'video'
   const [admin, setAdmin] = useState({ ready: demoMode, allowed: demoMode, email: demoMode ? 'Modo de demonstração' : '' })
   const [credentials, setCredentials] = useState({ email: '', password: '' })
   const [notice, setNotice] = useState('')
@@ -66,9 +67,9 @@ export function OperatorPage() {
           <section className="stage-card"><div className="stage-heading"><span className="section-kicker">CONTROLE DO PALCO</span><span className="stage-state">{room.stage === 'calling' ? 'CHAMANDO' : room.stage === 'singing' ? 'CANTANDO' : 'PRONTO'}</span></div>
             {current ? <><h2>{current.name} {current.table && <small>· Mesa {current.table}</small>}</h2><p>{current.song} — {current.artist}</p>{current.onMyWay && <span className="presence-badge">✓ Presença confirmada</span>}
               {room.stage === 'calling' && <p className="countdown-label">{current.onMyWay ? 'Você já pode iniciar a música.' : `Chamada no telão: ${countdown > 0 ? `${countdown}s` : 'tempo encerrado; aguarde sua decisão'}`}</p>}
-              {room.stage === 'calling' && !youtubeVideoId(current.selectedUrl || current.suggestedUrl) && <p className="stage-video-note">Cole o link da versão escolhida na fila aprovada para tocar no telão.</p>}
+              {room.stage === 'calling' && tvMode === 'video' && !youtubeVideoId(current.selectedUrl || current.suggestedUrl) && <p className="stage-video-note">Cole o link da versão escolhida na fila aprovada para tocar no telão.</p>}
             </> : <><h2>{room.queue[nextIndex]?.name ?? 'Palco livre'}</h2><p>{room.queue[nextIndex] ? `${room.queue[nextIndex].song}${room.queue[nextIndex].table ? ` · Mesa ${room.queue[nextIndex].table}` : ''}` : 'Aguardando o próximo cantor.'}</p></>}
-            <div className="stage-actions">{room.stage === 'idle' ? <button className="button button-light" disabled={busy || nextIndex < 0} onClick={() => doAction(callNextSinger)}>Chamar próximo <span aria-hidden="true">↗</span></button> : room.stage === 'calling' ? <>{!current?.onMyWay && <button className="button button-stage-outline" disabled={busy || !current} onClick={() => { const id = room.queue[0]?.id; if (id) void doAction(() => confirmSingerPresence(id)) }}>Confirmar presença</button>}<button className="button button-light" disabled={busy || (countdown > 0 && !current?.onMyWay) || !youtubeVideoId(current?.selectedUrl || current?.suggestedUrl || '')} onClick={() => doAction(startSong, 'Vídeo enviado ao telão.')}>Tocar no telão</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={() => doAction(markAbsent, 'Pedido devolvido para depois do próximo cantor.')}>Dar outra chance</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={cancelCurrentRequest}>Cancelar pedido</button></> : <button className="button button-light" disabled={busy} onClick={() => doAction(completeSong)}>Concluir música</button>}
+            <div className="stage-actions">{room.stage === 'idle' ? <button className="button button-light" disabled={busy || nextIndex < 0} onClick={() => doAction(callNextSinger)}>Chamar próximo <span aria-hidden="true">↗</span></button> : room.stage === 'calling' ? <>{!current?.onMyWay && <button className="button button-stage-outline" disabled={busy || !current} onClick={() => { const id = room.queue[0]?.id; if (id) void doAction(() => confirmSingerPresence(id)) }}>Confirmar presença</button>}<button className="button button-light" disabled={busy || (countdown > 0 && !current?.onMyWay) || (tvMode === 'video' && !youtubeVideoId(current?.selectedUrl || current?.suggestedUrl || ''))} onClick={() => doAction(startSong, tvMode === 'video' ? 'Vídeo enviado ao telão.' : 'Apresentação iniciada no modo clássico.')}>{tvMode === 'video' ? 'Tocar no telão' : 'Música iniciada'}</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={() => doAction(markAbsent, 'Pedido devolvido para depois do próximo cantor.')}>Dar outra chance</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={cancelCurrentRequest}>Cancelar pedido</button></> : <button className="button button-light" disabled={busy} onClick={() => doAction(completeSong)}>Concluir música</button>}
               {current && <a className="button button-stage-outline" target="_blank" rel="noreferrer" href={current.selectedUrl || current.suggestedUrl || youtubeSearch(current.song, current.artist)}>Abrir YouTube ↗</a>}</div>
           </section>
 
@@ -79,7 +80,18 @@ export function OperatorPage() {
           <section className="card operator-section"><div className="section-heading-row"><div><span className="section-kicker">CHEGANDO AGORA</span><h2>Novos pedidos</h2></div><span className="section-count">{pending.length}</span></div>
             {pending.length ? <div className="pending-list">{pending.map((request) => <PendingCard key={request.id} request={request} busy={busy} onAction={doAction} />)}</div> : <p className="empty-copy">Nenhum pedido aguardando aprovação.</p>}
           </section>
-          <section className="card settings-card"><span className="section-kicker">AJUSTES DA NOITE</span><h2>Operação</h2><p className="helper">Em cada chamada, escolha se o cantor volta para a fila ou se o pedido é cancelado.</p>{room.open ? <button className="text-button" disabled={busy} onClick={() => closeDialogRef.current?.showModal()}>Encerrar novos pedidos</button> : <button className="text-button" onClick={() => { if (window.confirm('Começar uma nova noite? A fila atual será arquivada e deixará de aparecer.')) doAction(openNight, 'Nova noite aberta.') }}>Começar nova noite</button>}</section>
+          <section className="card settings-card">
+            <span className="section-kicker">AJUSTES DA NOITE</span><h2>Operação</h2>
+            <p className="helper">Em cada chamada, escolha se o cantor volta para a fila ou se o pedido é cancelado.</p>
+            {room.open ? <button className="text-button" disabled={busy} onClick={() => closeDialogRef.current?.showModal()}>Encerrar novos pedidos</button> : <button className="text-button" onClick={() => { if (window.confirm('Começar uma nova noite? A fila atual será arquivada e deixará de aparecer.')) doAction(openNight, 'Nova noite aberta.') }}>Começar nova noite</button>}
+            <div className="tv-mode-settings"><span className="section-kicker">TELÃO</span><h3>Como mostrar a apresentação</h3>
+              <div className="tv-mode-options" role="group" aria-label="Modo do telão">
+                <button type="button" className={`tv-mode-option ${tvMode === 'video' ? 'is-selected' : ''}`} aria-pressed={tvMode === 'video'} disabled={busy || tvMode === 'video'} onClick={() => doAction(() => changeTvMode('video'), 'Telão em modo vídeo e fila.')}>Vídeo + fila</button>
+                <button type="button" className={`tv-mode-option ${tvMode === 'classic' ? 'is-selected' : ''}`} aria-pressed={tvMode === 'classic'} disabled={busy || tvMode === 'classic'} onClick={() => doAction(() => changeTvMode('classic'), 'Telão em modo clássico.')}>Painel clássico</button>
+              </div>
+              <p className="helper">A mudança aparece no telão aberto. No modo clássico, você pode abrir o YouTube separadamente. Trocar durante uma música interrompe o vídeo; ao voltar, ele recomeça.</p>
+            </div>
+          </section>
           <section className="card qr-card"><span className="section-kicker">QR ÚNICO</span><h2>Um código para todos</h2><p>Todos acessam o mesmo formulário. A mesa continua opcional para quem fizer o pedido.</p><div className="qr-preview"><QRCodeSVG value={`${window.location.origin}/`} size={152} marginSize={1} /><span>Peça sua música<br /><small>{window.location.host}</small></span></div><button className="button button-outline" onClick={() => window.open('/imprimir', '_blank')}>Imprimir QR único ↗</button><details className="table-qr-details"><summary>QR por mesa (para usar depois)</summary><p>Cartelas com o número da mesa preenchido automaticamente.</p><label>Número de mesas<input type="number" min={1} max={80} value={tableCount} onChange={(event) => setTableCount(Math.min(80, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="button button-outline" onClick={() => window.open(`/imprimir?mesas=${tableCount}`, '_blank')}>Abrir cartelas por mesa ↗</button></details></section>
         </aside></section>
       </>}

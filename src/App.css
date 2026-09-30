@@ -214,6 +214,12 @@ input[readonly] { background: #f3eadc; }
 .settings-card label, .qr-card label { margin-top: 16px; }
 .settings-card h2, .qr-card h2 { font-size: 26px; }
 .settings-card p, .qr-card p { color: var(--muted); line-height: 1.5; font-size: 13px; }
+.tv-mode-settings { border-top: 1px solid var(--line); margin-top: 19px; padding-top: 19px; }
+.tv-mode-settings h3 { font: 800 21px/1.15 var(--display); margin: 8px 0 12px; }
+.tv-mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.tv-mode-option { min-height: 48px; border: 1px solid #baa897; border-radius: 9px; background: #fffaf0; color: var(--ink); padding: 8px; font-size: 12px; font-weight: 800; cursor: pointer; }
+.tv-mode-option.is-selected { background: var(--plum); border-color: var(--plum); color: var(--cream); cursor: default; }
+.tv-mode-option:focus-visible { outline: 3px solid #137c86; outline-offset: 3px; }
 .helper { font-size: 11px !important; margin-top: 9px; }
 .text-button { background: none; border: 0; color: #924834; text-decoration: underline; padding: 5px 0; font-size: 12px; font-weight: 800; }
 .qr-preview { display: flex; align-items: center; gap: 15px; margin: 17px 0; font-family: var(--display); font-size: 24px; font-weight: 800; }
@@ -388,6 +394,7 @@ input[readonly] { background: #f3eadc; }
 
 @media (max-width: 380px) {
   .form-row { grid-template-columns: 1fr; }
+  .tv-mode-options { grid-template-columns: 1fr; }
 }
 
 @media print {

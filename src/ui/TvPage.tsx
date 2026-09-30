@@ -11,6 +11,10 @@ export function TvPage() {
   const countdown = useCountdown(room.stage === 'calling' ? room.calledAt : null)
   const upcoming = room.stage === 'idle' ? room.queue : room.queue.slice(1)
   const videoId = room.stage === 'singing' ? youtubeVideoId(room.playbackUrl ?? '') : null
+  const showVideo = (room.tvMode ?? 'video') === 'video' && Boolean(videoId)
+  const featureKicker = room.stage === 'singing'
+    ? (room.tvMode ?? 'video') === 'classic' ? 'NO PALCO AGORA' : 'AGUARDANDO VÍDEO'
+    : 'A NOITE É NOSSA'
   const guestUrl = `${window.location.origin}/`
 
   return <div className="tv-shell">
@@ -20,10 +24,10 @@ export function TvPage() {
       <h1>{current.name}</h1>{current.table && <div className="tv-table">MESA {current.table}</div>}
       <p>Chegou a sua vez de brilhar.</p><div className="tv-countdown">{countdown > 0 ? countdown : 'Aguardando operador'}</div>
     </main> : <main className="tv-grid">
-      <section className={`tv-feature ${videoId ? 'tv-feature-video' : ''}`}>
-        {videoId ? <><TvPlayer key={`${current?.id}:${room.playbackUrl}`} videoId={videoId} url={room.playbackUrl!} />
+      <section className={`tv-feature ${showVideo ? 'tv-feature-video' : ''}`}>
+        {showVideo ? <><TvPlayer key={`${current?.id}:${room.playbackUrl}`} videoId={videoId!} url={room.playbackUrl!} />
           <div className="tv-video-caption"><span>NO PALCO AGORA</span><strong>{current?.name}</strong><small>{current?.song} · {current?.artist}</small></div></>
-          : <div className="tv-feature-inner"><span className="tv-kicker">{room.stage === 'singing' ? 'AGUARDANDO VÍDEO' : 'A NOITE É NOSSA'}</span>
+          : <div className="tv-feature-inner"><span className="tv-kicker">{featureKicker}</span>
             <h1>{current ? current.name : 'Quem será o próximo?'}</h1>
             {current ? <><p className="tv-song">{current.song}</p><p className="tv-artist">{current.artist}{current.table && ` · Mesa ${current.table}`}</p></> : <p className="tv-song">O palco espera por você.</p>}
             <span className="tv-decor" aria-hidden="true">✦</span></div>}

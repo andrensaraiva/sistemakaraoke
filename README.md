@@ -27,6 +27,8 @@ Para testar o telão nesta máquina sem usar o Firebase publicado, rode `npm.cmd
 
 No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e clique em **Salvar**. Depois clique em **Chamar próximo**, **Confirmar presença** e **Tocar no telão**. Volte à aba do telão para ver o vídeo ao lado da fila. Para simular celular ou tablet no computador, use o modo de dispositivo das ferramentas do navegador na aba do operador.
 
+Em **Operação → Telão**, alterne entre **Vídeo + fila** e **Painel clássico**. A aba do telão muda imediatamente, e a escolha continua nas próximas noites. O modo clássico mostra o cantor e a fila sem incorporar o vídeo; nele, o operador pode abrir o YouTube separadamente. Trocar durante uma música interrompe a reprodução incorporada.
+
 Em uma cópia sem `.env.local`, o projeto abre em **modo demonstração**. Os dados ficam no armazenamento deste navegador e são compartilhados entre abas abertas no mesmo computador. As telas são:
 
 - `/` ou `/mesa/04`: pedido do cliente. A mesa é opcional; o QR de uma mesa já preenche o número.
@@ -78,6 +80,7 @@ Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `np
 ## Uso no bar
 
 - **Uma TV:** mantenha `/telao` aberto no navegador conectado à TV. O operador usa `/operador` no celular ou tablet, salva o link direto da versão escolhida na fila, chama o cantor e pode marcar **Confirmar presença** ao vê-lo chegar. Com a presença confirmada, pode tocar em **Tocar no telão** antes dos 10 segundos terminarem. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música. O convidado não precisa confirmar nada no celular.
+- Em **Operação → Telão**, escolha **Painel clássico** para voltar à visualização sem vídeo incorporado. Nesse modo, o link do YouTube é opcional e o operador abre o vídeo separadamente. **Vídeo + fila** exige um link direto de vídeo antes de iniciar.
 - O navegador da TV pode bloquear a reprodução automática com som. Nesse caso, toque em **Tocar vídeo** no telão. Alguns vídeos proíbem incorporação; escolha outra versão ou use o link **Abrir no YouTube**. A fila fica ao lado do player porque as [regras do YouTube](https://developers.google.com/youtube/terms/required-minimum-functionality) não permitem cobri-lo.
 - **Duas TVs:** mantenha `/telao` em uma TV e o vídeo da música na outra.
 - O operador escolhe e toca o vídeo. O sistema não inicia músicas automaticamente.
@@ -100,4 +103,4 @@ npm run test:mobile
 npm run test:firebase
 ```
 
-`test:rules` e `test:firebase` iniciam emuladores locais e exigem Java 11+; não usam dados do projeto real. `test:mobile` testa as telas de 390 e 320 px e o fluxo de uso em um navegador Edge instalado no computador. `test:firebase` também usa o Edge, com cliente e operador em sessões independentes.
+`test:rules` e `test:firebase` iniciam emuladores locais e exigem Java 11+; não usam dados do projeto real. `test:mobile` testa as telas de 320, 390, 768 e 1024 px e o fluxo de uso em um navegador Edge instalado no computador. `test:firebase` também usa o Edge, com cliente e operador em sessões independentes.

@@ -7,7 +7,7 @@ import {
 import {
   callNext as advanceCall, emptyRoom, finishSong, markNoShow,
   nextEligibleIndex, removeFromQueue, singerAlreadyQueued, terminalStatuses, toQueueEntry,
-  youtubeVideoId, type Room, type SongRequest,
+  youtubeVideoId, type Room, type SongRequest, type TvMode,
 } from './domain'
 import { mergeReportRequests, type NightRecord, type ReportData } from './reports'
 
@@ -254,7 +254,7 @@ export async function openNight() {
     mutateDemo((data) => {
       const previous = data.nights.find((item) => item.id === data.room.nightId)
       if (previous && previous.endedAt === null) previous.endedAt = now
-      data.room = room
+      data.room = { ...room, tvMode: data.room.tvMode ?? 'video' }
       data.nights.unshift(night)
     })
     return
@@ -271,7 +271,7 @@ export async function openNight() {
         endedAt: now,
       } satisfies NightRecord)
     }
-    transaction.set(mainRoom!, room)
+    transaction.set(mainRoom!, { ...room, tvMode: previousRoom?.tvMode ?? 'video' })
     transaction.set(nightRef(night.id), night)
   })
 }
@@ -284,6 +284,11 @@ export async function closeNight() {
 export async function reopenNight() {
   if (demoMode) { mutateDemo((data) => { data.room.open = true }); return }
   await updateDoc(mainRoom!, { open: true })
+}
+
+export async function changeTvMode(mode: TvMode) {
+  if (demoMode) { mutateDemo((data) => { data.room.tvMode = mode }); return }
+  await updateDoc(mainRoom!, { tvMode: mode })
 }
 
 export async function approveRequest(id: string, selectedUrl: string) {
@@ -367,10 +372,10 @@ export async function startSong() {
       const request = data.requests.find((item) => item.id === data.room.queue[0]?.id)
       assertRequest(request)
       const playbackUrl = request.selectedUrl || request.suggestedUrl
-      if (!youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
+      if ((data.room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
       request.status = 'singing'; request.onMyWay = true
       data.room.stage = 'singing'; data.room.calledAt = null
-      data.room.playbackUrl = playbackUrl
+      data.room.playbackUrl = youtubeVideoId(playbackUrl) ? playbackUrl : ''
     })
     return
   }
@@ -383,8 +388,8 @@ export async function startSong() {
     const request = requestSnapshot.data() as SongRequest | undefined
     assertRequest(request)
     const playbackUrl = request.selectedUrl || request.suggestedUrl
-    if (!youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
-    transaction.update(mainRoom!, { stage: 'singing', calledAt: null, playbackUrl })
+    if ((room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
+    transaction.update(mainRoom!, { stage: 'singing', calledAt: null, playbackUrl: youtubeVideoId(playbackUrl) ? playbackUrl : '' })
     transaction.update(requestRef(room.queue[0].id), { status: 'singing', onMyWay: true })
   })
 }
@@ -472,8 +477,8 @@ export async function saveSelectedUrl(id: string, selectedUrl: string) {
       assertRequest(request)
       if (data.room.stage === 'singing' && data.room.queue[0]?.id === id) {
         const playbackUrl = selectedUrl || request.suggestedUrl
-        if (!youtubeVideoId(playbackUrl)) throw new Error('A música no telão precisa de um link válido.')
-        data.room.playbackUrl = playbackUrl
+        if ((data.room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('A música no telão precisa de um link válido.')
+        data.room.playbackUrl = youtubeVideoId(playbackUrl) ? playbackUrl : ''
       }
       request.selectedUrl = selectedUrl
     })
@@ -487,8 +492,8 @@ export async function saveSelectedUrl(id: string, selectedUrl: string) {
     assertRoom(room); assertRequest(request)
     if (room.stage === 'singing' && room.queue[0]?.id === id) {
       const playbackUrl = selectedUrl || request.suggestedUrl
-      if (!youtubeVideoId(playbackUrl)) throw new Error('A música no telão precisa de um link válido.')
-      transaction.update(mainRoom!, { playbackUrl })
+      if ((room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('A música no telão precisa de um link válido.')
+      transaction.update(mainRoom!, { playbackUrl: youtubeVideoId(playbackUrl) ? playbackUrl : '' })
     }
     transaction.update(requestRef(id), { selectedUrl })
   })

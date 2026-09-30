@@ -1,5 +1,6 @@
 export type RequestStatus = 'pending' | 'queued' | 'calling' | 'singing' | 'completed' | 'removed' | 'rejected' | 'cancelled'
 export type Stage = 'idle' | 'calling' | 'singing'
+export type TvMode = 'video' | 'classic'
 
 export interface SongRequest {
   id: string
@@ -35,12 +36,13 @@ export interface Room {
   stage: Stage
   calledAt: number | null
   playbackUrl?: string
+  tvMode?: TvMode
   queue: QueueEntry[]
 }
 
 export const emptyRoom: Room = {
   nightId: '', open: false, completedCount: 0,
-  stage: 'idle', calledAt: null, playbackUrl: '', queue: [],
+  stage: 'idle', calledAt: null, playbackUrl: '', tvMode: 'video', queue: [],
 }
 
 export const terminalStatuses: RequestStatus[] = ['completed', 'removed', 'rejected', 'cancelled']
