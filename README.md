@@ -10,6 +10,8 @@ Esta instalação está ligada ao projeto `sistemakaraoke-andre` no plano Spark.
 - Operador: https://karaokedacasa.web.app/operador
 - Telão: https://karaokedacasa.web.app/telao
 
+Na página inicial, os links **Operador** e **Telão** ficam no rodapé. No celular ou tablet, você também pode salvar cada página como favorito ou adicioná-la à tela inicial para abrir direto.
+
 O endereço anterior `https://sistemakaraoke-andre.web.app` continua ativo como site padrão do mesmo projeto Firebase. O alvo `karaoke` em `.firebaserc` publica somente no novo endereço.
 
 Nesta máquina, `.env.local` contém a configuração do aplicativo Web e `.operator-credentials.local` contém o acesso inicial do operador. Esses arquivos são ignorados pelo Git. A primeira noite foi aberta para validar o site. O painel mostra se novos pedidos estão abertos ou fechados.
