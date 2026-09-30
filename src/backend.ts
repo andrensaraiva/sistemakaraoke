@@ -368,7 +368,8 @@ export async function startSong() {
       assertRequest(request)
       const playbackUrl = request.selectedUrl || request.suggestedUrl
       if (!youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
-      request.status = 'singing'; data.room.stage = 'singing'; data.room.calledAt = null
+      request.status = 'singing'; request.onMyWay = true
+      data.room.stage = 'singing'; data.room.calledAt = null
       data.room.playbackUrl = playbackUrl
     })
     return
@@ -384,7 +385,7 @@ export async function startSong() {
     const playbackUrl = request.selectedUrl || request.suggestedUrl
     if (!youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
     transaction.update(mainRoom!, { stage: 'singing', calledAt: null, playbackUrl })
-    transaction.update(requestRef(room.queue[0].id), { status: 'singing' })
+    transaction.update(requestRef(room.queue[0].id), { status: 'singing', onMyWay: true })
   })
 }
 
@@ -512,15 +513,26 @@ export async function moveQueueEntry(id: string, direction: -1 | 1) {
   })
 }
 
-export async function confirmOnMyWay(id: string) {
+export async function confirmSingerPresence(id: string) {
   if (demoMode) {
     mutateDemo((data) => {
+      if (data.room.stage !== 'calling' || data.room.queue[0]?.id !== id) throw new Error('Esta chamada já terminou.')
       const request = data.requests.find((item) => item.id === id)
       assertRequest(request)
-      if (request.status !== 'calling') throw new Error('A chamada já terminou.')
+      if (request.status !== 'calling') throw new Error('Esta chamada já terminou.')
       request.onMyWay = true
     })
     return
   }
-  await updateDoc(requestRef(id), { onMyWay: true })
+  await runTransaction(db!, async (transaction) => {
+    const roomSnapshot = await transaction.get(mainRoom!)
+    const requestSnapshot = await transaction.get(requestRef(id))
+    const room = roomSnapshot.data() as Room | undefined
+    const request = requestSnapshot.data() as SongRequest | undefined
+    assertRoom(room); assertRequest(request)
+    if (room.stage !== 'calling' || room.queue[0]?.id !== id || request.status !== 'calling') {
+      throw new Error('Esta chamada já terminou.')
+    }
+    if (!request.onMyWay) transaction.update(requestRef(id), { onMyWay: true })
+  })
 }

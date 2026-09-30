@@ -52,7 +52,6 @@ em { font-style: italic; }
 .position-near { background: #f6d9b1; border: 1px solid #d59657; }
 .position-callout span { font-weight: 700; }
 .turn-callout { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; background: #fae8df; padding: 14px; border-radius: 11px; margin-top: 18px; font-weight: 800; }
-.turn-callout .button { margin-left: auto; }
 .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: #ae4835; }
 .absence-note { margin: 16px 0 0; color: #844634; font-weight: 700; font-size: 13px; }
 .form-card { max-width: 720px; padding: 31px 35px 35px; margin: 32px auto; }
@@ -176,7 +175,7 @@ input[readonly] { background: #f3eadc; }
 .stage-card h2 small { font: 700 18px/1.2 'DM Sans', sans-serif; color: #e2cfda; }
 .stage-card p { color: #e8d9df; margin-bottom: 0; }
 .stage-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 27px; }
-.onway-badge { display: inline-block; color: #c3f0d3; margin-top: 10px; font-size: 13px; font-weight: 800; }
+.presence-badge { display: inline-block; color: #c3f0d3; margin-top: 10px; font-size: 13px; font-weight: 800; }
 .countdown-label { font-weight: 800; font-size: 13px; margin-top: 10px; }
 .stage-video-note { color: #ffe2a2 !important; font-weight: 800; font-size: 13px; }
 .operator-section { padding: 25px; }

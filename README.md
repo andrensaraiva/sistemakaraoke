@@ -25,7 +25,7 @@ npm run dev
 
 Para testar o telão nesta máquina sem usar o Firebase publicado, rode `npm.cmd run dev:demo`. O arquivo `.env.demo` desativa a conexão com o Firebase mesmo quando `.env.local` está configurado. Abra `http://127.0.0.1:5173/operador` e `http://127.0.0.1:5173/telao` em duas abas **do mesmo navegador**; a demonstração compartilha os dados entre abas, mas não entre dispositivos.
 
-No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e clique em **Salvar**. Depois clique em **Chamar próximo**, aguarde os 10 segundos e clique em **Tocar no telão**. Volte à aba do telão para ver o vídeo ao lado da fila. Para simular celular ou tablet no computador, use o modo de dispositivo das ferramentas do navegador na aba do operador.
+No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e clique em **Salvar**. Depois clique em **Chamar próximo**, **Confirmar presença** e **Tocar no telão**. Volte à aba do telão para ver o vídeo ao lado da fila. Para simular celular ou tablet no computador, use o modo de dispositivo das ferramentas do navegador na aba do operador.
 
 Em uma cópia sem `.env.local`, o projeto abre em **modo demonstração**. Os dados ficam no armazenamento deste navegador e são compartilhados entre abas abertas no mesmo computador. As telas são:
 
@@ -61,7 +61,7 @@ npm run dev:firebase-test
 
 O site local usa os emuladores de Authentication e Firestore. Eles não acessam o projeto real. Para um teste automatizado do fluxo completo, execute `npm run test:firebase`; esse comando inicia e encerra os emuladores sozinho.
 
-As regras do Firestore estão em `firestore.rules`: clientes podem criar e consultar o próprio pedido, confirmar “Estou indo” e ler a fila pública. Somente operadores cadastrados em `admins` podem aprovar, chamar, registrar falta ou mudar a ordem.
+As regras do Firestore estão em `firestore.rules`: clientes podem criar e consultar o próprio pedido e ler a fila pública. Somente operadores cadastrados em `admins` podem aprovar, chamar, confirmar a presença, registrar falta ou mudar a ordem.
 
 ## Publicar
 
@@ -77,11 +77,11 @@ Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `np
 
 ## Uso no bar
 
-- **Uma TV:** mantenha `/telao` aberto no navegador conectado à TV. O operador usa `/operador` no celular ou tablet, salva o link direto da versão escolhida na fila e toca em **Tocar no telão** após a chamada. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música.
+- **Uma TV:** mantenha `/telao` aberto no navegador conectado à TV. O operador usa `/operador` no celular ou tablet, salva o link direto da versão escolhida na fila, chama o cantor e pode marcar **Confirmar presença** ao vê-lo chegar. Com a presença confirmada, pode tocar em **Tocar no telão** antes dos 10 segundos terminarem. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música. O convidado não precisa confirmar nada no celular.
 - O navegador da TV pode bloquear a reprodução automática com som. Nesse caso, toque em **Tocar vídeo** no telão. Alguns vídeos proíbem incorporação; escolha outra versão ou use o link **Abrir no YouTube**. A fila fica ao lado do player porque as [regras do YouTube](https://developers.google.com/youtube/terms/required-minimum-functionality) não permitem cobri-lo.
 - **Duas TVs:** mantenha `/telao` em uma TV e o vídeo da música na outra.
 - O operador escolhe e toca o vídeo. O sistema não inicia músicas automaticamente.
-- Após os 10 segundos de chamada, o operador pode iniciar a música, dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.
+- O operador pode confirmar a presença e iniciar a música imediatamente. Se ninguém chegar, após os 10 segundos ele pode dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.
 - Cada navegador só consegue manter um pedido ativo por noite. Quando a mesa é informada, a aprovação também impede dois pedidos com o mesmo nome e mesa. Sem mesa, o operador confere possíveis duplicatas pelo nome.
 - O **QR único** do painel e do telão abre o formulário sem mesa preenchida. Use **Imprimir QR único** para gerar um cartaz. As cartelas por mesa continuam guardadas na seção “QR por mesa (para usar depois)”. Gere os QR pelo site publicado.
 - “Encerrar novos pedidos” pede confirmação, bloqueia novos pedidos e preserva a fila atual. É possível reabrir os pedidos; “Começar nova noite” cria uma fila nova.

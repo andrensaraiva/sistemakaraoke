@@ -73,16 +73,12 @@ service cloud.firestore {
         allow list: if isAdmin();
         allow create: if signedIn() && validGuestRequest(request.resource.data, requestId);
         allow update: if isAdmin() || (
-          signedIn() && resource.data.ownerUid == request.auth.uid && (
-            (resource.data.status in ['completed', 'removed', 'rejected', 'cancelled'] &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-                'name', 'table', 'song', 'artist', 'suggestedUrl', 'selectedUrl',
-                'status', 'misses', 'onMyWay', 'createdAt'
-              ]) && validGuestRequest(request.resource.data, requestId)) ||
-            (resource.data.status == 'calling' && resource.data.onMyWay == false &&
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['onMyWay']) &&
-              request.resource.data.onMyWay == true)
-          )
+          signedIn() && resource.data.ownerUid == request.auth.uid &&
+          resource.data.status in ['completed', 'removed', 'rejected', 'cancelled'] &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'table', 'song', 'artist', 'suggestedUrl', 'selectedUrl',
+            'status', 'misses', 'onMyWay', 'createdAt'
+          ]) && validGuestRequest(request.resource.data, requestId)
         );
         allow delete: if isAdmin();
       }
