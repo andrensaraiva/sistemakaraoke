@@ -5,7 +5,7 @@ import {
   demoMode, markAbsent, moveQueueEntry, openNight, rejectRequest, reopenNight, saveSelectedUrl,
   signInAdmin, signOutAdmin, startSong, watchAdmin,
 } from '../backend'
-import { nextEligibleIndex, youtubeSearch, youtubeUrl, type QueueEntry, type SongRequest } from '../domain'
+import { nextEligibleIndex, youtubeSearch, youtubeUrl, youtubeVideoId, type QueueEntry, type SongRequest } from '../domain'
 import { Brand, DemoBanner } from './Brand'
 import { useCountdown, useRequests, useRoom } from './hooks'
 import { ReportsPage } from './ReportsPage'
@@ -66,8 +66,9 @@ export function OperatorPage() {
           <section className="stage-card"><div className="stage-heading"><span className="section-kicker">CONTROLE DO PALCO</span><span className="stage-state">{room.stage === 'calling' ? 'CHAMANDO' : room.stage === 'singing' ? 'CANTANDO' : 'PRONTO'}</span></div>
             {current ? <><h2>{current.name} {current.table && <small>· Mesa {current.table}</small>}</h2><p>{current.song} — {current.artist}</p>{current.onMyWay && <span className="onway-badge">✓ Está a caminho</span>}
               {room.stage === 'calling' && <p className="countdown-label">Chamada no telão: {countdown > 0 ? `${countdown}s` : 'tempo encerrado; aguarde sua decisão'}</p>}
+              {room.stage === 'calling' && !youtubeVideoId(current.selectedUrl || current.suggestedUrl) && <p className="stage-video-note">Cole o link da versão escolhida na fila aprovada para tocar no telão.</p>}
             </> : <><h2>{room.queue[nextIndex]?.name ?? 'Palco livre'}</h2><p>{room.queue[nextIndex] ? `${room.queue[nextIndex].song}${room.queue[nextIndex].table ? ` · Mesa ${room.queue[nextIndex].table}` : ''}` : 'Aguardando o próximo cantor.'}</p></>}
-            <div className="stage-actions">{room.stage === 'idle' ? <button className="button button-light" disabled={busy || nextIndex < 0} onClick={() => doAction(callNextSinger)}>Chamar próximo <span aria-hidden="true">↗</span></button> : room.stage === 'calling' ? <><button className="button button-light" disabled={busy || countdown > 0} onClick={() => doAction(startSong, 'Apresentação iniciada. Dê play no vídeo escolhido.')}>Música iniciada</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={() => doAction(markAbsent, 'Pedido devolvido para depois do próximo cantor.')}>Dar outra chance</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={cancelCurrentRequest}>Cancelar pedido</button></> : <button className="button button-light" disabled={busy} onClick={() => doAction(completeSong)}>Concluir música</button>}
+            <div className="stage-actions">{room.stage === 'idle' ? <button className="button button-light" disabled={busy || nextIndex < 0} onClick={() => doAction(callNextSinger)}>Chamar próximo <span aria-hidden="true">↗</span></button> : room.stage === 'calling' ? <><button className="button button-light" disabled={busy || countdown > 0 || !youtubeVideoId(current?.selectedUrl || current?.suggestedUrl || '')} onClick={() => doAction(startSong, 'Vídeo enviado ao telão.')}>Tocar no telão</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={() => doAction(markAbsent, 'Pedido devolvido para depois do próximo cantor.')}>Dar outra chance</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={cancelCurrentRequest}>Cancelar pedido</button></> : <button className="button button-light" disabled={busy} onClick={() => doAction(completeSong)}>Concluir música</button>}
               {current && <a className="button button-stage-outline" target="_blank" rel="noreferrer" href={current.selectedUrl || current.suggestedUrl || youtubeSearch(current.song, current.artist)}>Abrir YouTube ↗</a>}</div>
           </section>
 
@@ -98,7 +99,7 @@ function QueueCard({ entry, index, length, lockedFirst, request, busy, onAction 
   const firstMovable = lockedFirst ? 1 : 0
   return <li className="queue-card"><span className="queue-number">{String(index + 1).padStart(2, '0')}</span><div className="operator-queue-body"><strong>{entry.name} {entry.table && <span>· Mesa {entry.table}</span>}</strong><p>{entry.song} — {entry.artist}</p>
     <div className="operator-meta">{entry.misses > 0 && <span>{entry.misses} {entry.misses === 1 ? 'chamada perdida' : 'chamadas perdidas'}</span>}{request?.onMyWay && <span>✓ A caminho</span>}<a href={request?.selectedUrl || request?.suggestedUrl || search} target="_blank" rel="noreferrer">Abrir vídeo ↗</a></div>
-    <div className="video-edit"><input type="url" aria-label={`Link escolhido para ${entry.song}`} value={link} onChange={(event) => setLinkEdit(event.target.value)} placeholder="Link da versão escolhida" /><button className="mini-button" disabled={busy || link === (request?.selectedUrl || request?.suggestedUrl || '')} onClick={() => { const clean = youtubeUrl(link); if (clean === null) { window.alert('Use um link válido do YouTube.'); return }; onAction(() => saveSelectedUrl(entry.id, clean), 'Vídeo escolhido salvo.') }}>Salvar</button></div>
+    <div className="video-edit"><input type="url" aria-label={`Link escolhido para ${entry.song}`} value={link} onChange={(event) => setLinkEdit(event.target.value)} placeholder="Link da versão escolhida" /><button className="mini-button" disabled={busy || link === (request?.selectedUrl || request?.suggestedUrl || '')} onClick={() => { const clean = youtubeUrl(link); if (clean === null || (clean && !youtubeVideoId(clean))) { window.alert('Cole um link direto de vídeo do YouTube.'); return }; onAction(() => saveSelectedUrl(entry.id, clean), 'Vídeo escolhido salvo.') }}>Salvar</button></div>
   </div><div className="queue-actions"><button className="icon-button" aria-label={`Subir ${entry.name} na fila`} title="Subir" disabled={busy || index <= firstMovable} onClick={() => onAction(() => moveQueueEntry(entry.id, -1))}>↑</button><button className="icon-button" aria-label={`Descer ${entry.name} na fila`} title="Descer" disabled={busy || index === length - 1 || (lockedFirst && index === 0)} onClick={() => onAction(() => moveQueueEntry(entry.id, 1))}>↓</button><button className="icon-button" aria-label={`Cancelar pedido de ${entry.name}`} title="Cancelar pedido" disabled={busy} onClick={() => { if (window.confirm(`Cancelar o pedido de ${entry.name}?`)) onAction(() => cancelRequest(entry.id)) }}>×</button></div></li>
 }
 
@@ -109,7 +110,7 @@ function PendingCard({ request, busy, onAction }: { request: SongRequest; busy: 
     <label className="compact-label">Vídeo escolhido <span className="optional">opcional</span><input type="url" value={link} onChange={(event) => setLink(event.target.value)} placeholder="Cole aqui a versão escolhida" /></label>
     <div className="pending-actions"><button className="button button-primary" disabled={busy} onClick={() => {
       const clean = youtubeUrl(link)
-      if (clean === null) { window.alert('Use um link válido do YouTube ou deixe vazio.'); return }
+      if (clean === null || (clean && !youtubeVideoId(clean))) { window.alert('Cole um link direto de vídeo do YouTube ou deixe vazio.'); return }
       onAction(() => approveRequest(request.id, clean), 'Pedido aprovado e incluído na fila.')
     }}>Aprovar</button><button className="button button-outline" disabled={busy} onClick={() => onAction(() => rejectRequest(request.id))}>Recusar</button></div>
   </article>

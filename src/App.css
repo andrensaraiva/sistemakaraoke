@@ -103,6 +103,19 @@ input[readonly] { background: #f3eadc; }
 .tv-feature { padding: 3vw; display: flex; min-width: 0; }
 .tv-feature-inner { border-radius: 16px; min-height: 510px; width: 100%; padding: 5vw; position: relative; overflow: hidden; background: radial-gradient(circle at 80% 80%, #79445a, transparent 42%), radial-gradient(circle at 20% 5%, #56334b, transparent 40%), #342334; display: flex; flex-direction: column; justify-content: center; }
 .tv-feature-inner::before { content: ''; width: 56%; aspect-ratio: 1; border-radius: 50%; border: 2px solid rgba(255,255,255,.1); position: absolute; right: -20%; top: -22%; box-shadow: 0 0 0 40px rgba(255,255,255,.015), 0 0 0 85px rgba(255,255,255,.012); }
+.tv-feature-video { flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 2vw; }
+.tv-player-shell { width: min(100%, 120vh); margin: auto; }
+.tv-player-frame { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+.tv-player-frame > div, .tv-player-frame iframe { width: 100% !important; height: 100% !important; }
+.tv-video-caption { width: min(100%, 120vh); display: flex; align-items: baseline; gap: 13px; flex-wrap: wrap; }
+.tv-video-caption span { color: var(--amber); font-size: 11px; font-weight: 800; letter-spacing: .13em; }
+.tv-video-caption strong { font: 800 clamp(23px, 2.2vw, 38px)/1.1 var(--display); }
+.tv-video-caption small { color: #d8cad1; font-size: clamp(13px, 1.2vw, 18px); }
+.tv-player-help { background: #fff1cc; color: var(--ink); border-radius: 9px; padding: 11px 14px; margin: 12px 0 0; font-weight: 700; }
+.tv-player-help button, .tv-player-help a { color: #884128; background: transparent; border: 0; padding: 6px; font: inherit; text-decoration: underline; cursor: pointer; }
+.tv-video-wait { width: min(100%, 120vh); min-height: 330px; aspect-ratio: 16 / 9; background: radial-gradient(circle at 70% 20%, #60384f, transparent 45%), #342334; border-radius: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; }
+.tv-video-wait h2 { font: 800 clamp(36px, 5vw, 76px)/1.1 var(--display); margin: 18px 0; }
+.tv-video-wait p { color: #e8d8d5; font-size: clamp(16px, 1.8vw, 26px); }
 .tv-kicker { color: var(--amber); font-size: clamp(12px, 1.15vw, 18px); }
 .tv-feature h1 { font: 800 clamp(52px, 6.4vw, 116px)/.98 var(--display); letter-spacing: -.06em; margin: 28px 0; max-width: 100%; overflow-wrap: anywhere; }
 .tv-song { color: var(--amber); font: 800 clamp(25px, 3.1vw, 52px)/1.13 var(--display); margin: 0 0 8px; }
@@ -165,6 +178,7 @@ input[readonly] { background: #f3eadc; }
 .stage-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 27px; }
 .onway-badge { display: inline-block; color: #c3f0d3; margin-top: 10px; font-size: 13px; font-weight: 800; }
 .countdown-label { font-weight: 800; font-size: 13px; margin-top: 10px; }
+.stage-video-note { color: #ffe2a2 !important; font-weight: 800; font-size: 13px; }
 .operator-section { padding: 25px; }
 .section-heading-row { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 18px; }
 .section-heading-row h2 { margin-bottom: 0; }
@@ -298,6 +312,7 @@ input[readonly] { background: #f3eadc; }
 
 @media (max-width: 900px) {
   .hero-disc { right: -180px; opacity: .55; }
+  .operator-header, .operator-header nav { flex-wrap: wrap; }
   .operator-grid { grid-template-columns: 1fr; }
   .operator-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .operator-side > :first-child { grid-row: span 2; }
@@ -306,6 +321,11 @@ input[readonly] { background: #f3eadc; }
   .tv-list-panel { padding: 0 4vw 4vw; }
   .tv-qr { margin-top: 30px; }
   .report-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 800px) {
+  .operator-side { grid-template-columns: 1fr; }
+  .operator-side > :first-child { grid-row: auto; }
 }
 
 @media (max-width: 600px) {
@@ -349,8 +369,10 @@ input[readonly] { background: #f3eadc; }
   .setup-actions { min-width: 0; flex-direction: column; align-items: stretch; }
   .stage-card, .operator-section { padding: 19px; }
   .stage-card h2 { font-size: 34px; }
-  .queue-card { gap: 9px; }
-  .queue-actions { flex-direction: column; }
+  .queue-card { gap: 9px; flex-wrap: wrap; }
+  .operator-queue-body { flex: 1 1 calc(100% - 45px); }
+  .video-edit { max-width: none; }
+  .queue-actions { flex: 0 0 100%; flex-direction: row; justify-content: flex-end; }
   .print-grid { grid-template-columns: 1fr; }
   .print-single { min-height: 650px; padding: 35px 20px; }
   .dialog-actions { flex-direction: column; }

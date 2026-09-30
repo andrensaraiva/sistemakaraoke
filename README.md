@@ -1,6 +1,6 @@
 # Karaokê da Casa
 
-Sistema web para pedidos de karaokê pelo celular, fila ao vivo, painel do operador e telão. A reprodução das músicas fica com o operador. A mesa é opcional.
+Sistema web para pedidos de karaokê pelo celular, fila ao vivo, painel do operador e telão com vídeo do YouTube. A mesa é opcional.
 
 ## Projeto Firebase ativo
 
@@ -28,7 +28,7 @@ Em uma cópia sem `.env.local`, o projeto abre em **modo demonstração**. Os da
 - `/` ou `/mesa/04`: pedido do cliente. A mesa é opcional; o QR de uma mesa já preenche o número.
 - `/operador`: aprovação, escolha da versão, fila, chamada e ausências.
 - `/operador/relatorios`: histórico das noites, rankings de músicas e artistas, horário com mais pedidos e resumo CSV para divulgação.
-- `/telao`: fila pública e chamada de 10 segundos.
+- `/telao`: chamada de 10 segundos, vídeo da apresentação e próximos participantes.
 
 Na demonstração há três cantores fictícios para testar a fila. Para apagar a demonstração, limpe os dados deste site no navegador.
 
@@ -73,7 +73,8 @@ Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `np
 
 ## Uso no bar
 
-- **Uma TV:** mostre `/telao` entre as músicas e durante a chamada. Troque para o vídeo do YouTube quando o cantor estiver pronto.
+- **Uma TV:** mantenha `/telao` aberto no navegador conectado à TV. O operador usa `/operador` no celular ou tablet, salva o link direto da versão escolhida na fila e toca em **Tocar no telão** após a chamada. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música.
+- O navegador da TV pode bloquear a reprodução automática com som. Nesse caso, toque em **Tocar vídeo** no telão. Alguns vídeos proíbem incorporação; escolha outra versão ou use o link **Abrir no YouTube**. A fila fica ao lado do player porque as [regras do YouTube](https://developers.google.com/youtube/terms/required-minimum-functionality) não permitem cobri-lo.
 - **Duas TVs:** mantenha `/telao` em uma TV e o vídeo da música na outra.
 - O operador escolhe e toca o vídeo. O sistema não inicia músicas automaticamente.
 - Após os 10 segundos de chamada, o operador pode iniciar a música, dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.

@@ -7,7 +7,7 @@ import {
 import {
   callNext as advanceCall, emptyRoom, finishSong, markNoShow,
   nextEligibleIndex, removeFromQueue, singerAlreadyQueued, terminalStatuses, toQueueEntry,
-  type Room, type SongRequest,
+  youtubeVideoId, type Room, type SongRequest,
 } from './domain'
 import { mergeReportRequests, type NightRecord, type ReportData } from './reports'
 
@@ -366,7 +366,10 @@ export async function startSong() {
       if (data.room.stage !== 'calling') throw new Error('Chame o cantor primeiro.')
       const request = data.requests.find((item) => item.id === data.room.queue[0]?.id)
       assertRequest(request)
+      const playbackUrl = request.selectedUrl || request.suggestedUrl
+      if (!youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
       request.status = 'singing'; data.room.stage = 'singing'; data.room.calledAt = null
+      data.room.playbackUrl = playbackUrl
     })
     return
   }
@@ -376,8 +379,11 @@ export async function startSong() {
     assertRoom(room)
     if (room.stage !== 'calling' || !room.queue[0]) throw new Error('Chame o cantor primeiro.')
     const requestSnapshot = await transaction.get(requestRef(room.queue[0].id))
-    if (!requestSnapshot.exists()) throw new Error('Pedido não encontrado.')
-    transaction.update(mainRoom!, { stage: 'singing', calledAt: null })
+    const request = requestSnapshot.data() as SongRequest | undefined
+    assertRequest(request)
+    const playbackUrl = request.selectedUrl || request.suggestedUrl
+    if (!youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
+    transaction.update(mainRoom!, { stage: 'singing', calledAt: null, playbackUrl })
     transaction.update(requestRef(room.queue[0].id), { status: 'singing' })
   })
 }
@@ -458,15 +464,33 @@ export async function cancelRequest(id: string) {
 }
 
 export async function saveSelectedUrl(id: string, selectedUrl: string) {
+  if (selectedUrl && !youtubeVideoId(selectedUrl)) throw new Error('Cole um link direto de vídeo do YouTube.')
   if (demoMode) {
     mutateDemo((data) => {
       const request = data.requests.find((item) => item.id === id)
       assertRequest(request)
+      if (data.room.stage === 'singing' && data.room.queue[0]?.id === id) {
+        const playbackUrl = selectedUrl || request.suggestedUrl
+        if (!youtubeVideoId(playbackUrl)) throw new Error('A música no telão precisa de um link válido.')
+        data.room.playbackUrl = playbackUrl
+      }
       request.selectedUrl = selectedUrl
     })
     return
   }
-  await updateDoc(requestRef(id), { selectedUrl })
+  await runTransaction(db!, async (transaction) => {
+    const roomSnapshot = await transaction.get(mainRoom!)
+    const requestSnapshot = await transaction.get(requestRef(id))
+    const room = roomSnapshot.data() as Room | undefined
+    const request = requestSnapshot.data() as SongRequest | undefined
+    assertRoom(room); assertRequest(request)
+    if (room.stage === 'singing' && room.queue[0]?.id === id) {
+      const playbackUrl = selectedUrl || request.suggestedUrl
+      if (!youtubeVideoId(playbackUrl)) throw new Error('A música no telão precisa de um link válido.')
+      transaction.update(mainRoom!, { playbackUrl })
+    }
+    transaction.update(requestRef(id), { selectedUrl })
+  })
 }
 
 export async function moveQueueEntry(id: string, direction: -1 | 1) {

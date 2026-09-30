@@ -33,12 +33,13 @@ export interface Room {
   completedCount: number
   stage: Stage
   calledAt: number | null
+  playbackUrl?: string
   queue: QueueEntry[]
 }
 
 export const emptyRoom: Room = {
   nightId: '', open: false, completedCount: 0,
-  stage: 'idle', calledAt: null, queue: [],
+  stage: 'idle', calledAt: null, playbackUrl: '', queue: [],
 }
 
 export const terminalStatuses: RequestStatus[] = ['completed', 'removed', 'rejected', 'cancelled']
@@ -79,7 +80,7 @@ export function callNext(room: Room, request: SongRequest, now = Date.now()): Ro
   const queue = [...room.queue]
   const [entry] = queue.splice(index, 1)
   queue.unshift(entry)
-  return { ...room, queue, stage: 'calling', calledAt: now }
+  return { ...room, queue, stage: 'calling', calledAt: now, playbackUrl: '' }
 }
 
 export function markNoShow(room: Room, request: SongRequest): { room: Room; misses: number } {
@@ -92,7 +93,7 @@ export function markNoShow(room: Room, request: SongRequest): { room: Room; miss
     ...room.queue[0], misses, eligibleAfter: room.completedCount + 1,
   }
   const queue = rest.length ? [rest[0], deferred, ...rest.slice(1)] : [deferred]
-  return { room: { ...room, queue, stage: 'idle', calledAt: null }, misses }
+  return { room: { ...room, queue, stage: 'idle', calledAt: null, playbackUrl: '' }, misses }
 }
 
 export function finishSong(room: Room, request: SongRequest): Room {
@@ -100,7 +101,7 @@ export function finishSong(room: Room, request: SongRequest): Room {
     throw new Error('Não há apresentação em andamento para concluir.')
   }
   return {
-    ...room, queue: room.queue.slice(1), stage: 'idle', calledAt: null,
+    ...room, queue: room.queue.slice(1), stage: 'idle', calledAt: null, playbackUrl: '',
     completedCount: room.completedCount + 1,
   }
 }
@@ -111,6 +112,7 @@ export function removeFromQueue(room: Room, id: string): Room {
     queue: room.queue.filter((entry) => entry.id !== id),
     stage: room.queue[0]?.id === id ? 'idle' : room.stage,
     calledAt: room.queue[0]?.id === id ? null : room.calledAt,
+    playbackUrl: room.queue[0]?.id === id ? '' : room.playbackUrl,
   }
 }
 
@@ -124,6 +126,18 @@ export function youtubeUrl(value: string): string | null {
     }
   } catch { /* invalid URL */ }
   return null
+}
+
+export function youtubeVideoId(value: string): string | null {
+  if (!youtubeUrl(value)) return null
+  const url = new URL(value)
+  const path = url.pathname.split('/').filter(Boolean)
+  const id = url.hostname.endsWith('youtu.be')
+    ? path[0]
+    : path[0] === 'watch'
+      ? url.searchParams.get('v')
+      : ['shorts', 'live', 'embed'].includes(path[0]) ? path[1] : null
+  return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null
 }
 
 export function youtubeSearch(song: string, artist: string): string {
