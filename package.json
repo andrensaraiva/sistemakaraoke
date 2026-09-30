@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:demo": "vite --mode demo --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "build:firebase": "node scripts/check-firebase-env.mjs && npm run build",
     "dev:firebase-test": "vite --mode emulator",
