@@ -8,13 +8,34 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-  "hosting": {
-    "target": "karaoke",
-    "public": "dist",
-    "predeploy": ["npm run build:firebase"],
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
-    "rewrites": [{ "source": "**", "destination": "/index.html" }]
-  },
+  "hosting": [
+    {
+      "target": "karaoke",
+      "public": "dist",
+      "predeploy": ["npm run build:firebase"],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "redirects": [
+        { "source": "/operador", "destination": "https://operadorkdc.web.app/", "type": 302 },
+        { "source": "/operador/relatorios", "destination": "https://operadorkdc.web.app/operador/relatorios", "type": 302 },
+        { "source": "/telao", "destination": "https://telaokdc.web.app/", "type": 302 }
+      ],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    },
+    {
+      "target": "operador",
+      "public": "dist",
+      "predeploy": ["npm run build:firebase"],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    },
+    {
+      "target": "telao",
+      "public": "dist",
+      "predeploy": ["npm run build:firebase"],
+      "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "rewrites": [{ "source": "**", "destination": "/index.html" }]
+    }
+  ],
   "emulators": {
     "auth": { "host": "127.0.0.1", "port": 9099 },
     "firestore": { "host": "127.0.0.1", "port": 8080 },

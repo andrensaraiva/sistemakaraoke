@@ -7,12 +7,12 @@ Sistema web para pedidos de karaokê pelo celular, fila ao vivo, painel do opera
 Esta instalação está ligada ao projeto `sistemakaraoke-andre` no plano Spark. O Firestore Standard fica em São Paulo (`southamerica-east1`), com autenticação anônima para clientes e e-mail/senha para operadores.
 
 - Site: https://karaokedacasa.web.app
-- Operador: https://karaokedacasa.web.app/operador
-- Telão: https://karaokedacasa.web.app/telao
+- Operador: https://operadorkdc.web.app
+- Telão: https://telaokdc.web.app
 
-Na página inicial, os links **Operador** e **Telão** ficam no rodapé. No celular ou tablet, você também pode salvar cada página como favorito ou adicioná-la à tela inicial para abrir direto.
+A página dos convidados não mostra links para o operador ou para o telão. Salve os endereços da equipe como favoritos ou adicione-os à tela inicial do celular ou tablet. O painel exige login mesmo que alguém conheça o endereço.
 
-O endereço anterior `https://sistemakaraoke-andre.web.app` continua ativo como site padrão do mesmo projeto Firebase. O alvo `karaoke` em `.firebaserc` publica somente no novo endereço.
+O endereço anterior `https://sistemakaraoke-andre.web.app` continua ativo como site padrão do mesmo projeto Firebase. Os três endereços acima são sites Hosting separados, com os alvos `karaoke`, `operador` e `telao` em `.firebaserc`. Os caminhos antigos `/operador` e `/telao` no site dos convidados redirecionam para os endereços da equipe.
 
 Nesta máquina, `.env.local` contém a configuração do aplicativo Web e `.operator-credentials.local` contém o acesso inicial do operador. Esses arquivos são ignorados pelo Git. A primeira noite foi aberta para validar o site. O painel mostra se novos pedidos estão abertos ou fechados.
 
@@ -69,22 +69,22 @@ As regras do Firestore estão em `firestore.rules`: clientes podem criar e consu
 
 ## Publicar
 
-Para atualizar o site `karaokedacasa.web.app` no projeto ativo:
+Para atualizar os três sites no projeto ativo:
 
 ```powershell
-npx.cmd firebase deploy --project sistemakaraoke-andre --only hosting:karaoke
+npx.cmd firebase deploy --project sistemakaraoke-andre --only hosting
 ```
 
-Para publicar mudanças nas regras ou nos métodos de login, use `npx.cmd firebase deploy --project sistemakaraoke-andre --only auth,firestore:rules`. O deploy do site executa `npm run build:firebase` automaticamente e falha se faltarem variáveis ou se o ID for de demonstração. Confira se `VITE_FIREBASE_PROJECT_ID` em `.env.local` é `sistemakaraoke-andre`. **Imprima os QR codes pelo novo site publicado**, pois QR codes gerados no endereço antigo ou em `localhost` não abrirão o novo endereço nos celulares das mesas.
+Para publicar mudanças nas regras ou nos métodos de login, use `npx.cmd firebase deploy --project sistemakaraoke-andre --only auth,firestore:rules`. O deploy dos sites executa `npm run build:firebase` automaticamente e falha se faltarem variáveis ou se o ID for de demonstração. Confira se `VITE_FIREBASE_PROJECT_ID` em `.env.local` é `sistemakaraoke-andre`. Os QR codes gerados no painel e no telão apontam sempre para `karaokedacasa.web.app`; os endereços estão em `.env.production`.
 
 Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `npx.cmd` no lugar de `npm` e `npx`.
 
 ## Uso no bar
 
-- **Uma TV:** mantenha `/telao` aberto no navegador conectado à TV. O operador usa `/operador` no celular ou tablet, salva o link direto da versão escolhida na fila, chama o cantor e pode marcar **Confirmar presença** ao vê-lo chegar. Com a presença confirmada, pode tocar em **Tocar no telão** antes dos 10 segundos terminarem. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música. O convidado não precisa confirmar nada no celular.
+- **Uma TV:** mantenha `https://telaokdc.web.app` aberto no navegador conectado à TV. O operador usa `https://operadorkdc.web.app` no celular ou tablet, salva o link direto da versão escolhida na fila, chama o cantor e pode marcar **Confirmar presença** ao vê-lo chegar. Com a presença confirmada, pode tocar em **Tocar no telão** antes dos 10 segundos terminarem. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música. O convidado não precisa confirmar nada no celular.
 - Em **Operação → Telão**, escolha **Painel clássico** para voltar à visualização sem vídeo incorporado. Nesse modo, o link do YouTube é opcional e o operador abre o vídeo separadamente. **Vídeo + fila** exige um link direto de vídeo antes de iniciar.
 - O navegador da TV pode bloquear a reprodução automática com som. Nesse caso, toque em **Tocar vídeo** no telão. Alguns vídeos proíbem incorporação; escolha outra versão ou use o link **Abrir no YouTube**. A fila fica ao lado do player porque as [regras do YouTube](https://developers.google.com/youtube/terms/required-minimum-functionality) não permitem cobri-lo.
-- **Duas TVs:** mantenha `/telao` em uma TV e o vídeo da música na outra.
+- **Duas TVs:** mantenha `https://telaokdc.web.app` em uma TV e o vídeo da música na outra.
 - O operador escolhe e toca o vídeo. O sistema não inicia músicas automaticamente.
 - O operador pode confirmar a presença e iniciar a música imediatamente. Se ninguém chegar, após os 10 segundos ele pode dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.
 - Cada navegador só consegue manter um pedido ativo por noite. Quando a mesa é informada, a aprovação também impede dois pedidos com o mesmo nome e mesa. Sem mesa, o operador confere possíveis duplicatas pelo nome.

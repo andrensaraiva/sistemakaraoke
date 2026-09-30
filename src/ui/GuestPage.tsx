@@ -95,12 +95,6 @@ export function GuestPage() {
         {room.queue.length ? <ol className="guest-queue">{room.queue.slice(0, 6).map((entry, index) => <li key={entry.id}><span className="queue-number">{String(index + 1).padStart(2, '0')}</span><span className="queue-person"><strong>{entry.name}</strong><small>{entry.song} · {entry.artist}</small></span>{entry.table && <span className="table-chip">MESA {entry.table}</span>}</li>)}</ol> : <p className="empty-copy">A fila ainda está vazia. Que tal abrir o show?</p>}
       </section>
     </main>
-    <footer className="site-footer">
-      <span>Feito para deixar a noite fluir.</span>
-      <nav className="staff-links" aria-label="Acesso da equipe">
-        <a href="/operador">Operador</a>
-        <a href="/telao">Telão</a>
-      </nav>
-    </footer>
+    <footer className="site-footer"><span>Feito para deixar a noite fluir.</span></footer>
   </div>
 }

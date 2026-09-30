@@ -4,6 +4,7 @@ import { Brand, DemoBanner } from './Brand'
 import { useCountdown, useRoom } from './hooks'
 import { TvPlayer } from './TvPlayer'
 import { venueName } from './venue'
+import { guestUrl } from './siteUrls'
 
 export function TvPage() {
   const room = useRoom()
@@ -15,7 +16,6 @@ export function TvPage() {
   const featureKicker = room.stage === 'singing'
     ? (room.tvMode ?? 'video') === 'classic' ? 'NO PALCO AGORA' : 'AGUARDANDO VÍDEO'
     : 'A NOITE É NOSSA'
-  const guestUrl = `${window.location.origin}/`
 
   return <div className="tv-shell">
     <div className="tv-top"><Brand /><span className="live-indicator"><span /> AO VIVO</span></div>

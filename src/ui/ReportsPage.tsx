@@ -3,6 +3,7 @@ import { demoMode, loadReports, signOutAdmin } from '../backend'
 import { buildSummaryCsv, requestsForNights, summarizeRequests, type NightRecord, type RankedItem, type ReportData } from '../reports'
 import type { Room } from '../domain'
 import { Brand, DemoBanner } from './Brand'
+import { operatorUrl, tvUrl } from './siteUrls'
 
 function dateLabel(timestamp: number): string {
   return new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).format(timestamp)
@@ -67,7 +68,7 @@ export function ReportsPage({ room }: { room: Room }) {
   const peak = summary.hours[0]
 
   return <div className="operator-shell report-shell"><DemoBanner />
-    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href="/operador">Painel da noite ↗</a><a href="/telao" target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => void signOutAdmin()}>Sair</button>}</nav></header>
+    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href={operatorUrl}>Painel da noite ↗</a><a href={tvUrl} target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => void signOutAdmin()}>Sair</button>}</nav></header>
     <main className="operator-main report-main">
       <div className="operator-title report-title"><div><span className="section-kicker">INTELIGÊNCIA DA CASA</span><h1>Relatórios da casa<span className="title-spark">✦</span></h1><p>Descubra o que o público pede e acompanhe cada noite de karaokê.</p></div><span className="session-pill">Acesso do operador</span></div>
       <div className="report-toolbar"><label>Período ou noite<select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">Todas as noites</option><option value="30">Últimos 30 dias</option><option value="90">Últimos 90 dias</option><optgroup label="Uma noite">{allNights.map((night) => <option key={night.id} value={`night:${night.id}`}>{dateLabel(night.startedAt)}{night.id === room.nightId ? ' · atual' : ''}</option>)}</optgroup></select></label><div className="report-toolbar-actions"><button className="button button-outline" disabled={loading} onClick={() => void refresh()}>{loading ? 'Atualizando...' : 'Atualizar dados'}</button><button className="button button-primary" disabled={!data || selectedNights.length === 0} onClick={() => data && downloadCsv(data, selectedNights)}>Baixar resumo CSV ↗</button></div></div>

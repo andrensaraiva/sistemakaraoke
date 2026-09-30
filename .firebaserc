@@ -5,8 +5,17 @@
   "targets": {
     "sistemakaraoke-andre": {
       "hosting": {
-        "karaoke": ["karaokedacasa"]
+        "karaoke": [
+          "karaokedacasa"
+        ],
+        "operador": [
+          "operadorkdc"
+        ],
+        "telao": [
+          "telaokdc"
+        ]
       }
     }
-  }
+  },
+  "etags": {}
 }

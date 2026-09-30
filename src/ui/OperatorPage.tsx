@@ -9,6 +9,7 @@ import { nextEligibleIndex, youtubeSearch, youtubeUrl, youtubeVideoId, type Queu
 import { Brand, DemoBanner } from './Brand'
 import { useCountdown, useRequests, useRoom } from './hooks'
 import { ReportsPage } from './ReportsPage'
+import { guestUrl, tvUrl } from './siteUrls'
 
 type RunAction = (action: () => Promise<void>, success?: string) => Promise<void>
 
@@ -58,7 +59,7 @@ export function OperatorPage() {
   if (reportRoute) return <ReportsPage room={room} />
 
   return <div className="operator-shell"><DemoBanner />
-    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href="/operador/relatorios">Relatórios ↗</a><a href="/" target="_blank" rel="noreferrer">Visão do cliente ↗</a><a href="/telao" target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => doAction(signOutAdmin)}>Sair</button>}</nav></header>
+    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href="/operador/relatorios">Relatórios ↗</a><a href={guestUrl} target="_blank" rel="noreferrer">Visão do cliente ↗</a><a href={tvUrl} target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => doAction(signOutAdmin)}>Sair</button>}</nav></header>
     <main className="operator-main"><div className="operator-title"><div><span className="section-kicker">CENTRAL DO KARAOKÊ</span><h1>Painel da noite<span className="title-spark">✦</span></h1><p>Pedidos, palco e próxima música em um só lugar.</p></div><span className={`session-pill ${room.open ? 'session-open' : ''}`}>{room.open ? '● Noite aberta' : '○ Noite fechada'}</span></div>
       {!room.nightId ? <section className="card setup-card"><div><span className="section-kicker">COMEÇAR</span><h2>Abra a noite para receber pedidos</h2><p>Você decide durante cada chamada se a pessoa ganha outra chance.</p></div><div className="setup-actions"><button className="button button-primary" disabled={busy} onClick={() => doAction(openNight, 'Noite aberta. Os QR codes já podem ser usados.')}>Abrir nova noite ↗</button></div></section> : <>
         {!room.open && <div className="closed-notice" role="status">Pedidos encerrados. A fila atual continua em andamento. <button className="mini-button" disabled={busy} onClick={() => doAction(reopenNight, 'Pedidos reabertos.')}>Reabrir pedidos</button></div>}
@@ -92,7 +93,7 @@ export function OperatorPage() {
               <p className="helper">A mudança aparece no telão aberto. No modo clássico, você pode abrir o YouTube separadamente. Trocar durante uma música interrompe o vídeo; ao voltar, ele recomeça.</p>
             </div>
           </section>
-          <section className="card qr-card"><span className="section-kicker">QR ÚNICO</span><h2>Um código para todos</h2><p>Todos acessam o mesmo formulário. A mesa continua opcional para quem fizer o pedido.</p><div className="qr-preview"><QRCodeSVG value={`${window.location.origin}/`} size={152} marginSize={1} /><span>Peça sua música<br /><small>{window.location.host}</small></span></div><button className="button button-outline" onClick={() => window.open('/imprimir', '_blank')}>Imprimir QR único ↗</button><details className="table-qr-details"><summary>QR por mesa (para usar depois)</summary><p>Cartelas com o número da mesa preenchido automaticamente.</p><label>Número de mesas<input type="number" min={1} max={80} value={tableCount} onChange={(event) => setTableCount(Math.min(80, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="button button-outline" onClick={() => window.open(`/imprimir?mesas=${tableCount}`, '_blank')}>Abrir cartelas por mesa ↗</button></details></section>
+          <section className="card qr-card"><span className="section-kicker">QR ÚNICO</span><h2>Um código para todos</h2><p>Todos acessam o mesmo formulário. A mesa continua opcional para quem fizer o pedido.</p><div className="qr-preview"><QRCodeSVG value={guestUrl} size={152} marginSize={1} /><span>Peça sua música<br /><small>{new URL(guestUrl).host}</small></span></div><button className="button button-outline" onClick={() => window.open('/imprimir', '_blank')}>Imprimir QR único ↗</button><details className="table-qr-details"><summary>QR por mesa (para usar depois)</summary><p>Cartelas com o número da mesa preenchido automaticamente.</p><label>Número de mesas<input type="number" min={1} max={80} value={tableCount} onChange={(event) => setTableCount(Math.min(80, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="button button-outline" onClick={() => window.open(`/imprimir?mesas=${tableCount}`, '_blank')}>Abrir cartelas por mesa ↗</button></details></section>
         </aside></section>
       </>}
       {notice && <p className="feedback operator-feedback" role="status">{notice}</p>}
