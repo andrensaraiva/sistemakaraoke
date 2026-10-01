@@ -15,7 +15,7 @@ export interface SongRequest {
   selectedUrl: string
   status: RequestStatus
   misses: number
-  // Legacy Firestore key; now records presence confirmed by the operator.
+  // Legacy Firestore key kept for compatibility with existing requests.
   onMyWay: boolean
   createdAt: number
 }

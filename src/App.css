@@ -176,7 +176,6 @@ input[readonly] { background: #f3eadc; }
 .stage-card h2 small { font: 700 18px/1.2 'DM Sans', sans-serif; color: #e2cfda; }
 .stage-card p { color: #e8d9df; margin-bottom: 0; }
 .stage-actions { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 27px; }
-.presence-badge { display: inline-block; color: #c3f0d3; margin-top: 10px; font-size: 13px; font-weight: 800; }
 .countdown-label { font-weight: 800; font-size: 13px; margin-top: 10px; }
 .stage-video-note { color: #ffe2a2 !important; font-weight: 800; font-size: 13px; }
 .operator-section { padding: 25px; }
@@ -215,12 +214,16 @@ input[readonly] { background: #f3eadc; }
 .youtube-workbench { padding: 23px; min-width: 0; }
 .youtube-workbench h2 { font: 800 26px/1.12 var(--display); letter-spacing: -.045em; margin: 8px 0; }
 .youtube-workbench > p { color: var(--muted); line-height: 1.5; font-size: 13px; }
+.workbench-view-options { display: flex; gap: 7px; margin-top: 17px; }
+.workbench-view-options button { flex: 1; min-height: 42px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: #fffaf1; color: var(--ink); font-weight: 800; cursor: pointer; }
+.workbench-view-options button.is-selected { border-color: #94452f; background: #f8e8d5; color: #94452f; }
 .workbench-native { display: flex; flex-direction: column; align-items: start; gap: 8px; margin: 16px 0 21px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #fffaf1; }
-.workbench-native strong { font-size: 13px; }
 .workbench-native span { color: var(--muted); font-size: 12px; line-height: 1.45; }
-.workbench-native label { width: 100%; margin-top: 3px; }
+.workbench-native details { width: 100%; margin-top: 5px; }
+.workbench-native summary { color: #94452f; font-size: 12px; font-weight: 800; cursor: pointer; }
+.workbench-native details .button { margin-top: 10px; }
+.workbench-playlist-link { flex: 1; min-width: 180px; width: 100%; }
 .workbench-native .button { min-height: 39px; }
-.workbench-subtitle { font: 800 18px/1.2 var(--display); margin: 0 0 8px; }
 .youtube-workbench label { margin-top: 14px; }
 .workbench-note, .workbench-message { margin: 14px 0 0; padding: 11px 13px; border-radius: 8px; background: #fff1c7; color: #4c2c20 !important; font-weight: 700; }
 .workbench-connect, .workbench-playlist, .workbench-search { display: flex; align-items: end; gap: 9px; flex-wrap: wrap; margin-top: 14px; }

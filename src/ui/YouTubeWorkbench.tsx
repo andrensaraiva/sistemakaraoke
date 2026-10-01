@@ -8,6 +8,15 @@ const scope = 'https://www.googleapis.com/auth/youtube.force-ssl'
 const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID?.trim() || ''
 const simulated = demoMode && !clientId
 const demoVideo: YouTubeVideo = { id: 'M7lc1UVf-VE', title: 'Vídeo de teste do YouTube (não é karaokê)', channel: 'Demonstração', thumbnail: '' }
+type WorkbenchView = 'integrated' | 'music'
+
+function storedView(): WorkbenchView {
+  try {
+    const saved = window.localStorage.getItem('karaoke-workbench-view')
+    if (saved === 'integrated' || saved === 'music') return saved
+  } catch { /* armazenamento indisponível */ }
+  return clientId || demoMode ? 'integrated' : 'music'
+}
 
 function storedPlaylistUrl(): string {
   try { return window.localStorage.getItem('karaoke-youtube-playlist') || '' }
@@ -25,6 +34,7 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
   const clientRef = useRef<GoogleTokenClient | null>(null)
   const expiryTimerRef = useRef<number | null>(null)
   const [ready, setReady] = useState(false)
+  const [view, setView] = useState<WorkbenchView>(storedView)
   const [token, setToken] = useState<string | null>(null)
   const [playlistInput, setPlaylistInput] = useState(storedPlaylistUrl)
   const [playlistId, setPlaylistId] = useState(simulated ? 'demo-playlist' : '')
@@ -39,6 +49,17 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
   const selectedVideoId = youtubeVideoId(selectedRequest?.selectedUrl || selectedRequest?.suggestedUrl || '')
   const connected = simulated || Boolean(token)
   const nativePlaylistId = playlistIdFromInput(playlistInput)
+  const playlistField = <label className="workbench-playlist-link">Link da playlist da noite<input type="url" value={playlistInput} onChange={(event) => {
+    const value = event.target.value
+    setPlaylistInput(value)
+    if (!simulated) { setPlaylistId(''); setPlaylistTitle('') }
+    try { window.localStorage.setItem('karaoke-youtube-playlist', value.trim()) } catch { /* armazenamento indisponível */ }
+  }} placeholder="https://music.youtube.com/playlist?list=..." /></label>
+
+  function chooseView(next: WorkbenchView) {
+    setView(next)
+    try { window.localStorage.setItem('karaoke-workbench-view', next) } catch { /* armazenamento indisponível */ }
+  }
 
   useEffect(() => {
     if (!clientId) return
@@ -119,30 +140,26 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
     finally { setBusy(false) }
   }
 
-  return <section className="card youtube-workbench" aria-label="Busca integrada do YouTube">
-    <span className="section-kicker">MÚSICA DA NOITE</span><h2>Buscar e montar playlist</h2>
-    <p>Teste as duas opções: use a busca integrada abaixo ou abra a página original do YouTube Music em outra janela.</p>
-    <div className="workbench-native">
-      <strong>Página original do YouTube Music</strong>
-      <span>Use sua conta e sua playlist diretamente no YouTube Music. No computador, você pode deixar esta janela ao lado do painel.</span>
-      <a className="button button-outline" href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">Abrir YouTube Music ↗</a>
-      <label>Link da playlist da noite<input type="url" value={playlistInput} onChange={(event) => {
-        const value = event.target.value
-        setPlaylistInput(value)
-        if (!simulated) { setPlaylistId(''); setPlaylistTitle('') }
-        try { window.localStorage.setItem('karaoke-youtube-playlist', value.trim()) } catch { /* armazenamento indisponível */ }
-      }} placeholder="https://music.youtube.com/playlist?list=..." /></label>
-      {nativePlaylistId && <a className="button button-outline" href={`https://music.youtube.com/playlist?list=${nativePlaylistId}`} target="_blank" rel="noopener noreferrer">Abrir minha playlist ↗</a>}
+  return <section className="card youtube-workbench" aria-label="Escolha de música do operador">
+    <span className="section-kicker">MÚSICA DA NOITE</span><h2>Como buscar a música?</h2>
+    <div className="workbench-view-options" role="group" aria-label="Forma de buscar música">
+      <button type="button" aria-pressed={view === 'integrated'} className={view === 'integrated' ? 'is-selected' : ''} onClick={() => chooseView('integrated')}>No painel</button>
+      <button type="button" aria-pressed={view === 'music'} className={view === 'music' ? 'is-selected' : ''} onClick={() => chooseView('music')}>YouTube Music</button>
     </div>
-    <h3 className="workbench-subtitle">Busca dentro do painel</h3>
-    <p>Escolha a versão para a fila do sistema e adicione à playlist da noite com um clique separado.</p>
-    {!clientId && !simulated ? <p className="workbench-note">A conexão com Google precisa de um ID OAuth configurado no projeto.</p> : <>
+    {view === 'music' ? <div className="workbench-native">
+      <span>Abra o YouTube Music, escolha a versão e cole o link do vídeo na fila.</span>
+      <a className="button button-outline" href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">Abrir YouTube Music ↗</a>
+      <details><summary>Minha playlist da noite</summary>{playlistField}
+        {nativePlaylistId && <a className="button button-outline" href={`https://music.youtube.com/playlist?list=${nativePlaylistId}`} target="_blank" rel="noopener noreferrer">Abrir minha playlist ↗</a>}
+      </details>
+    </div> : <>
+    {!clientId && !simulated ? <p className="workbench-note">Esta opção ainda precisa ser conectada à conta Google. Por enquanto, use YouTube Music.</p> : <>
       {simulated ? <p className="workbench-note">Demonstração local: a busca retorna um vídeo de teste e a playlist é simulada. Nenhum item será salvo na sua conta Google.</p> : <><div className="workbench-connect">
         <span>{connected ? 'Conta Google conectada nesta sessão' : ready ? 'Conecte a conta que criou a playlist' : 'Carregando conexão com Google...'}</span>
         <button className="button button-outline" type="button" disabled={!ready || busy} onClick={() => clientRef.current?.requestAccessToken()}>{connected ? 'Trocar ou renovar conta' : 'Conectar conta Google'}</button>
       </div>
       <div className="workbench-playlist">
-        <span>Use a playlist informada acima na busca integrada.</span>
+        {playlistField}
         <button className="button button-outline" type="button" disabled={!connected || busy} onClick={() => void verifyPlaylist()}>Selecionar playlist</button>
       </div></>}
       {playlistTitle && <p className="workbench-selected">✓ {playlistTitle}</p>}
@@ -173,6 +190,7 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
         </div>
       </li>)}</ol>}
       <p className="helper">{simulated ? 'Para pesquisar vídeos reais e alterar sua playlist, configure a conexão Google no projeto.' : 'O YouTube Music mostra apenas vídeos que ele classifica como música. A playlist e a fila do sistema continuam independentes.'}</p>
+    </>}
     </>}
   </section>
 }

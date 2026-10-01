@@ -77,7 +77,7 @@ try {
   await guest.getByText('Sua vez! Dirija-se ao palco. O operador pode iniciar a música.').waitFor()
   assert.equal(await guest.getByRole('button', { name: 'Estou indo' }).count(), 0)
   await operator.bringToFront()
-  await operator.getByText('Teste local: você pode tocar agora, sem confirmar presença.').waitFor()
+  await operator.getByText('Você já pode iniciar a música.', { exact: false }).waitFor()
   assert.equal(await operator.getByRole('button', { name: 'Confirmar presença' }).count(), 0)
   assert.equal(await operator.getByRole('button', { name: 'Tocar no telão' }).isEnabled(), true)
   if (process.env.MOBILE_SCREENSHOTS) await operator.screenshot({ path: 'operator-presence-preview.png', fullPage: true })

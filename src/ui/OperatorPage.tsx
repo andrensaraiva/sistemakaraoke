@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import {
-  approveRequest, callNextSinger, cancelRequest, changeTvMode, closeNight, completeSong, confirmSingerPresence,
+  approveRequest, callNextSinger, cancelRequest, changeTvMode, closeNight, completeSong,
   demoMode, markAbsent, moveQueueEntry, openNight, rejectRequest, reopenNight, saveSelectedUrl,
   signInAdmin, signOutAdmin, startSong, watchAdmin,
 } from '../backend'
@@ -79,11 +79,11 @@ export function OperatorPage() {
         <section className="operator-stats" aria-label="Resumo da noite"><div><span>NA FILA</span><strong>{room.queue.length}</strong></div><div><span>PEDIDOS PENDENTES</span><strong>{pending.length}</strong></div><div><span>APRESENTAÇÕES</span><strong>{room.completedCount}</strong></div><div><span>CHAMADAS PERDIDAS</span><strong>{missedCalls}</strong></div></section>
         <section className="operator-grid"><div className="operator-primary">
           <section className="stage-card"><div className="stage-heading"><span className="section-kicker">CONTROLE DO PALCO</span><span className="stage-state">{room.stage === 'calling' ? 'CHAMANDO' : room.stage === 'singing' ? 'CANTANDO' : 'PRONTO'}</span></div>
-            {current ? <><h2>{current.name} {current.table && <small>· Mesa {current.table}</small>}</h2><p>{current.song} — {current.artist}</p>{current.onMyWay && <span className="presence-badge">✓ Presença confirmada</span>}
-              {room.stage === 'calling' && <p className="countdown-label">{demoMode ? 'Teste local: você pode tocar agora, sem confirmar presença.' : current.onMyWay ? 'Você já pode iniciar a música.' : `Chamada no telão: ${countdown > 0 ? `${countdown}s` : 'tempo encerrado; aguarde sua decisão'}`}</p>}
+            {current ? <><h2>{current.name} {current.table && <small>· Mesa {current.table}</small>}</h2><p>{current.song} — {current.artist}</p>
+              {room.stage === 'calling' && <p className="countdown-label">{countdown > 0 ? `Chamada no telão: ${countdown}s. Você já pode iniciar a música.` : 'Chamada encerrada. Você ainda pode iniciar a música ou decidir sobre a ausência.'}</p>}
               {room.stage === 'calling' && tvMode === 'video' && !youtubeVideoId(current.selectedUrl || current.suggestedUrl) && <p className="stage-video-note">Cole o link da versão escolhida do YouTube ou YouTube Music na fila aprovada para tocar no telão.</p>}
             </> : <><h2>{room.queue[nextIndex]?.name ?? 'Palco livre'}</h2><p>{room.queue[nextIndex] ? `${room.queue[nextIndex].song}${room.queue[nextIndex].table ? ` · Mesa ${room.queue[nextIndex].table}` : ''}` : 'Aguardando o próximo cantor.'}</p></>}
-            <div className="stage-actions">{room.stage === 'idle' ? <button className="button button-light" disabled={busy || nextIndex < 0} onClick={() => doAction(callNextSinger)}>Chamar próximo <span aria-hidden="true">↗</span></button> : room.stage === 'calling' ? <>{!demoMode && !current?.onMyWay && <button className="button button-stage-outline" disabled={busy || !current} onClick={() => { const id = room.queue[0]?.id; if (id) void doAction(() => confirmSingerPresence(id)) }}>Confirmar presença</button>}<button className="button button-light" disabled={busy || (!demoMode && countdown > 0 && !current?.onMyWay) || (tvMode === 'video' && !youtubeVideoId(current?.selectedUrl || current?.suggestedUrl || ''))} onClick={() => doAction(startSong, tvMode === 'video' ? 'Vídeo enviado ao telão.' : 'Apresentação iniciada no modo clássico.')}>{tvMode === 'video' ? 'Tocar no telão' : 'Música iniciada'}</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={() => doAction(markAbsent, 'Pedido devolvido para depois do próximo cantor.')}>Dar outra chance</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={cancelCurrentRequest}>Cancelar pedido</button></> : <button className="button button-light" disabled={busy} onClick={() => doAction(completeSong)}>Concluir música</button>}
+            <div className="stage-actions">{room.stage === 'idle' ? <button className="button button-light" disabled={busy || nextIndex < 0} onClick={() => doAction(callNextSinger)}>Chamar próximo <span aria-hidden="true">↗</span></button> : room.stage === 'calling' ? <><button className="button button-light" disabled={busy || (tvMode === 'video' && !youtubeVideoId(current?.selectedUrl || current?.suggestedUrl || ''))} onClick={() => doAction(startSong, tvMode === 'video' ? 'Vídeo enviado ao telão.' : 'Apresentação iniciada no modo clássico.')}>{tvMode === 'video' ? 'Tocar no telão' : 'Música iniciada'}</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={() => doAction(markAbsent, 'Pedido devolvido para depois do próximo cantor.')}>Dar outra chance</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={cancelCurrentRequest}>Cancelar pedido</button></> : <button className="button button-light" disabled={busy} onClick={() => doAction(completeSong)}>Concluir música</button>}
               {current && <a className="button button-stage-outline" target="_blank" rel="noreferrer" href={current.selectedUrl || current.suggestedUrl || karaokeSearch(searchProvider, current.song, current.artist)}>Abrir versão ↗</a>}</div>
           </section>
 
@@ -101,14 +101,14 @@ export function OperatorPage() {
           <section className="card settings-card">
             <span className="section-kicker">AJUSTES DA NOITE</span><h2>Operação</h2>
             <p className="helper">Em cada chamada, escolha se o cantor volta para a fila ou se o pedido é cancelado.</p>
-            <label className="search-provider-label">Buscar karaokê em
+            <label className="search-provider-label">Links de busca da fila
               <select value={searchProvider} onChange={(event) => setSearchProvider(event.target.value as SearchProvider)}>
                 <option value="youtube">YouTube</option>
                 <option value="youtube_music">YouTube Music</option>
                 <option value="spotify">Spotify</option>
               </select>
             </label>
-            <p className="helper">A busca abre na sua conta em outra aba. Para tocar vídeo no telão, salve o link direto do YouTube ou YouTube Music. O Spotify serve para busca e uso com o painel clássico.</p>
+            <p className="helper">Spotify funciona com o painel clássico; o telão com vídeo usa YouTube.</p>
             {room.open ? <button className="text-button" disabled={busy} onClick={() => closeDialogRef.current?.showModal()}>Encerrar novos pedidos</button> : <button className="text-button" onClick={() => { if (window.confirm('Começar uma nova noite? A fila atual será arquivada e deixará de aparecer.')) doAction(openNight, 'Nova noite aberta.') }}>Começar nova noite</button>}
             <div className="tv-mode-settings"><span className="section-kicker">TELÃO</span><h3>Como mostrar a apresentação</h3>
               <div className="tv-mode-options" role="group" aria-label="Modo do telão">
@@ -136,7 +136,7 @@ function QueueCard({ entry, index, length, lockedFirst, request, searchProvider,
   const search = karaokeSearch(searchProvider, entry.song, entry.artist)
   const firstMovable = lockedFirst ? 1 : 0
   return <li className="queue-card"><span className="queue-number">{String(index + 1).padStart(2, '0')}</span><div className="operator-queue-body"><strong>{entry.name} {entry.table && <span>· Mesa {entry.table}</span>}</strong><p>{entry.song} — {entry.artist}</p>
-    <div className="operator-meta">{entry.misses > 0 && <span>{entry.misses} {entry.misses === 1 ? 'chamada perdida' : 'chamadas perdidas'}</span>}{request?.onMyWay && <span>✓ Presença confirmada</span>}<a href={request?.selectedUrl || request?.suggestedUrl || search} target="_blank" rel="noreferrer">{request?.selectedUrl || request?.suggestedUrl ? 'Abrir versão' : `Buscar no ${searchProviderLabels[searchProvider]}`} ↗</a></div>
+    <div className="operator-meta">{entry.misses > 0 && <span>{entry.misses} {entry.misses === 1 ? 'chamada perdida' : 'chamadas perdidas'}</span>}<a href={request?.selectedUrl || request?.suggestedUrl || search} target="_blank" rel="noreferrer">{request?.selectedUrl || request?.suggestedUrl ? 'Abrir versão' : `Buscar no ${searchProviderLabels[searchProvider]}`} ↗</a></div>
     <div className="video-edit"><input type="url" aria-label={`Link escolhido para ${entry.song}`} value={link} onChange={(event) => setLinkEdit(event.target.value)} placeholder="Link da versão escolhida" /><button className="mini-button" disabled={busy || link === (request?.selectedUrl || request?.suggestedUrl || '')} onClick={() => { const clean = youtubeUrl(link); if (clean === null || (clean && !youtubeVideoId(clean))) { window.alert('Cole um link direto de vídeo do YouTube ou YouTube Music.'); return }; onAction(() => saveSelectedUrl(entry.id, clean), 'Vídeo escolhido salvo.') }}>Salvar</button></div>
   </div><div className="queue-actions"><button className="icon-button" aria-label={`Subir ${entry.name} na fila`} title="Subir" disabled={busy || index <= firstMovable} onClick={() => onAction(() => moveQueueEntry(entry.id, -1))}>↑</button><button className="icon-button" aria-label={`Descer ${entry.name} na fila`} title="Descer" disabled={busy || index === length - 1 || (lockedFirst && index === 0)} onClick={() => onAction(() => moveQueueEntry(entry.id, 1))}>↓</button><button className="icon-button" aria-label={`Cancelar pedido de ${entry.name}`} title="Cancelar pedido" disabled={busy} onClick={() => { if (window.confirm(`Cancelar o pedido de ${entry.name}?`)) onAction(() => cancelRequest(entry.id)) }}>×</button></div></li>
 }

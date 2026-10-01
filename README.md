@@ -27,7 +27,7 @@ npm run dev
 
 Para testar o telão nesta máquina sem usar o Firebase publicado, rode `npm.cmd run dev:demo`. O arquivo `.env.demo` desativa a conexão com o Firebase mesmo quando `.env.local` está configurado. Abra `http://127.0.0.1:5173/operador` e `http://127.0.0.1:5173/telao` em duas abas **do mesmo navegador**; a demonstração compartilha os dados entre abas, mas não entre dispositivos.
 
-No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e clique em **Salvar**. Depois clique em **Chamar próximo** e **Tocar no telão**. No modo demonstração, esse botão fica disponível imediatamente, sem confirmação de presença do cantor; a versão com Firebase mantém a confirmação. Volte à aba do telão para ver o vídeo ao lado da fila. Para simular celular ou tablet no computador, use o modo de dispositivo das ferramentas do navegador na aba do operador.
+No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e clique em **Salvar**. Depois clique em **Chamar próximo** e **Tocar no telão**. O botão fica disponível imediatamente, sem confirmação de presença do cantor, tanto na demonstração quanto no Firebase. Volte à aba do telão para ver o vídeo ao lado da fila. Para simular celular ou tablet no computador, use o modo de dispositivo das ferramentas do navegador na aba do operador.
 
 Em **Operação → Telão**, alterne entre **Vídeo + fila** e **Painel clássico**. A aba do telão muda imediatamente, e a escolha continua nas próximas noites. O modo clássico mostra o cantor e a fila sem incorporar o vídeo; nele, o operador pode abrir o YouTube separadamente. Trocar durante uma música interrompe a reprodução incorporada.
 
@@ -35,7 +35,7 @@ O operador pode escolher **YouTube**, **YouTube Music** ou **Spotify** em **Oper
 
 ### Busca integrada e playlist da noite
 
-A seção **Buscar e montar playlist** oferece duas formas de trabalho. **Abrir YouTube Music** mostra a página original em outra janela; no computador, ela pode ficar ao lado do operador. A busca integrada permite pesquisar vídeos dentro do painel, escolher uma versão para a fila do sistema e, com um clique separado, adicioná-la à playlist criada na conta do YouTube Music. A página completa do YouTube Music não pode ser embutida no painel. A conexão com Google só é solicitada ao operador e o token de acesso fica apenas na memória desta aba; é preciso reconectar quando expirar ou recarregar a página.
+A seção **Como buscar a música?** tem duas opções compactas. **YouTube Music** abre a página original em outra janela; o operador cola o link direto do vídeo na fila. **No painel** permite pesquisar vídeos, escolher uma versão para a fila e, com um clique separado, adicioná-la à playlist da conta Google. A página completa do YouTube Music não pode ser embutida no painel. A conexão com Google só é solicitada ao operador quando esta opção estiver configurada; o token de acesso fica na memória desta aba e é preciso reconectar quando expirar ou recarregar a página.
 
 No `dev:demo`, a busca integrada usa um vídeo de teste e uma playlist simulada. Escolha uma pessoa em **Pedido da fila**, clique em **Buscar**, **Usar na fila** e **Adicionar à playlist** para experimentar o fluxo sem configurar Google. Essa busca não consulta músicas reais e não altera nenhuma playlist da conta Google. Para tocar o vídeo de teste, clique em **Chamar próximo** e **Tocar no telão**; abra `/telao` em outra aba do mesmo navegador e clique uma vez em **Preparar telão**.
 
@@ -46,7 +46,7 @@ Para habilitar essa seção, no projeto Google Cloud usado para a integração:
 3. Crie um [cliente OAuth Web](https://console.cloud.google.com/auth/clients), com `https://operadorkdc.web.app` em **Origens JavaScript autorizadas**. Para teste local, adicione `http://localhost:5173` e `http://127.0.0.1:5173` se for usar ambos os endereços.
 4. Coloque o **ID do cliente** (não o segredo) em `VITE_GOOGLE_OAUTH_CLIENT_ID` no `.env.local`, reinicie o servidor local ou publique novamente os sites. No painel, clique em **Conectar conta Google**, cole o link da playlist criada no YouTube Music e clique em **Selecionar playlist**.
 
-A busca integrada usa a cota da YouTube Data API. Mesmo no modo demonstração, clicar em **Adicionar à playlist** altera a playlist real da conta Google conectada; use uma playlist de teste. Apenas vídeos que o YouTube Music classifica como música aparecem na biblioteca do YouTube Music, mesmo que estejam numa playlist visível no YouTube. [Documentação das playlists do YouTube Music](https://support.google.com/youtubemusic/answer/7205933?co=GENIE.Platform%3DDesktop&hl=pt-BR).
+A busca integrada usa a cota da YouTube Data API quando conectada à conta Google. Nesse caso, mesmo em `dev:demo`, clicar em **Adicionar à playlist** altera a playlist real; use uma playlist de teste. Sem ID OAuth, `dev:demo` usa apenas a playlist simulada e o site publicado informa que falta a configuração. Apenas vídeos que o YouTube Music classifica como música aparecem na biblioteca do YouTube Music, mesmo que estejam numa playlist visível no YouTube. [Documentação das playlists do YouTube Music](https://support.google.com/youtubemusic/answer/7205933?co=GENIE.Platform%3DDesktop&hl=pt-BR).
 
 Em uma cópia sem `.env.local`, o projeto abre em **modo demonstração**. Os dados ficam no armazenamento deste navegador e são compartilhados entre abas abertas no mesmo computador. As telas são:
 
@@ -82,7 +82,7 @@ npm run dev:firebase-test
 
 O site local usa os emuladores de Authentication e Firestore. Eles não acessam o projeto real. Para um teste automatizado do fluxo completo, execute `npm run test:firebase`; esse comando inicia e encerra os emuladores sozinho.
 
-As regras do Firestore estão em `firestore.rules`: clientes podem criar e consultar o próprio pedido e ler a fila pública. Somente operadores cadastrados em `admins` podem aprovar, chamar, confirmar a presença, registrar falta ou mudar a ordem.
+As regras do Firestore estão em `firestore.rules`: clientes podem criar e consultar o próprio pedido e ler a fila pública. Somente operadores cadastrados em `admins` podem aprovar, chamar, iniciar a música, registrar falta ou mudar a ordem.
 
 ## Publicar
 
@@ -98,12 +98,12 @@ Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `np
 
 ## Uso no bar
 
-- **Uma TV:** mantenha `https://telaokdc.web.app` aberto no navegador conectado à TV. O operador usa `https://operadorkdc.web.app` no celular ou tablet, salva o link direto da versão escolhida na fila, chama o cantor e pode marcar **Confirmar presença** ao vê-lo chegar. Com a presença confirmada, pode tocar em **Tocar no telão** antes dos 10 segundos terminarem. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música. O convidado não precisa confirmar nada no celular.
+- **Uma TV:** mantenha `https://telaokdc.web.app` aberto no navegador conectado à TV. O operador usa `https://operadorkdc.web.app` no celular ou tablet, salva o link direto da versão escolhida na fila, chama o cantor e clica em **Tocar no telão** quando estiver pronto. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música. O convidado apenas se inscreve e acompanha a fila no celular.
 - Em **Operação → Telão**, escolha **Painel clássico** para voltar à visualização sem vídeo incorporado. Nesse modo, o link do YouTube é opcional e o operador abre o vídeo separadamente. **Vídeo + fila** exige um link direto de vídeo antes de iniciar.
 - No computador da TV, clique em **Preparar telão** uma vez após abrir a página. Isso autoriza o Chrome ou Edge a tentar reproduzir os vídeos seguintes com som quando o operador clicar em **Tocar no telão**. O navegador ainda pode bloquear a reprodução; nesse caso, toque em **Tocar vídeo** no telão. Alguns vídeos proíbem incorporação; escolha outra versão ou use o link **Abrir no YouTube**. A fila fica ao lado do player porque as [regras do YouTube](https://developers.google.com/youtube/terms/required-minimum-functionality) não permitem cobri-lo.
 - **Duas TVs:** mantenha `https://telaokdc.web.app` em uma TV e o vídeo da música na outra.
 - O operador escolhe e toca o vídeo. O sistema não inicia músicas automaticamente.
-- O operador pode confirmar a presença e iniciar a música imediatamente. Se ninguém chegar, após os 10 segundos ele pode dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.
+- O operador pode iniciar a música imediatamente após chamar, sem confirmação do convidado. Se ninguém chegar, após os 10 segundos ele pode dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.
 - Cada navegador só consegue manter um pedido ativo por noite. Quando a mesa é informada, a aprovação também impede dois pedidos com o mesmo nome e mesa. Sem mesa, o operador confere possíveis duplicatas pelo nome.
 - O **QR único** do painel e do telão abre o formulário sem mesa preenchida. Use **Imprimir QR único** para gerar um cartaz. As cartelas por mesa continuam guardadas na seção “QR por mesa (para usar depois)”. Gere os QR pelo site publicado.
 - “Encerrar novos pedidos” pede confirmação, bloqueia novos pedidos e preserva a fila atual. É possível reabrir os pedidos; “Começar nova noite” cria uma fila nova.
