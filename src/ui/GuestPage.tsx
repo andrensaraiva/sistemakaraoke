@@ -4,10 +4,11 @@ import { publicPosition, terminalStatuses, youtubeUrl, type SongRequest } from '
 import { Brand, DemoBanner } from './Brand'
 import { useRoom } from './hooks'
 import { venueName } from './venue'
+import { venuePath } from '../venueContext'
 
 export function GuestPage() {
   const room = useRoom()
-  const routeTable = decodeURIComponent(window.location.pathname.match(/^\/mesa\/([^/]+)/)?.[1] ?? '')
+  const routeTable = decodeURIComponent(venuePath.match(/^\/mesa\/([^/]+)/)?.[1] ?? '')
   const [uid, setUid] = useState('')
   const [own, setOwn] = useState<SongRequest | null>(null)
   const [form, setForm] = useState({ name: '', table: routeTable, song: '', artist: '', suggestedUrl: '' })

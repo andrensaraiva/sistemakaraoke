@@ -3,6 +3,7 @@ import { demoMode } from '../backend'
 import { youtubeVideoId, type SongRequest } from '../domain'
 import { loadGoogleOAuth, type GoogleTokenClient } from '../googleOAuth'
 import { addVideoToPlaylist, getPlaylistTitle, playlistIdFromInput, searchYouTube, type YouTubeVideo } from '../youtube'
+import { venueId } from '../venueContext'
 
 const scope = 'https://www.googleapis.com/auth/youtube.force-ssl'
 const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID?.trim() || ''
@@ -12,14 +13,16 @@ type WorkbenchView = 'integrated' | 'music'
 
 function storedView(): WorkbenchView {
   try {
-    const saved = window.localStorage.getItem('karaoke-workbench-view')
+    const saved = window.localStorage.getItem(`karaoke-workbench-view-${venueId}`)
     if (saved === 'integrated' || saved === 'music') return saved
   } catch { /* armazenamento indisponível */ }
   return clientId || demoMode ? 'integrated' : 'music'
 }
 
-function storedPlaylistUrl(): string {
-  try { return window.localStorage.getItem('karaoke-youtube-playlist') || '' }
+function playlistStorageKey(nightId: string) { return `karaoke-youtube-playlist-${venueId}-${nightId}` }
+
+function storedPlaylistUrl(nightId: string): string {
+  try { return window.localStorage.getItem(playlistStorageKey(nightId)) || '' }
   catch { return '' }
 }
 
@@ -27,7 +30,8 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Não foi possível concluir a operação no YouTube.'
 }
 
-export function YouTubeWorkbench({ requests, onUseVideo }: {
+export function YouTubeWorkbench({ nightId, requests, onUseVideo }: {
+  nightId: string
   requests: SongRequest[]
   onUseVideo: (request: SongRequest, url: string) => Promise<void>
 }) {
@@ -36,7 +40,7 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
   const [ready, setReady] = useState(false)
   const [view, setView] = useState<WorkbenchView>(storedView)
   const [token, setToken] = useState<string | null>(null)
-  const [playlistInput, setPlaylistInput] = useState(storedPlaylistUrl)
+  const [playlistInput, setPlaylistInput] = useState(() => storedPlaylistUrl(nightId))
   const [playlistId, setPlaylistId] = useState(simulated ? 'demo-playlist' : '')
   const [playlistTitle, setPlaylistTitle] = useState(simulated ? 'Playlist simulada' : '')
   const [selectedRequestId, setSelectedRequestId] = useState('')
@@ -53,12 +57,12 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
     const value = event.target.value
     setPlaylistInput(value)
     if (!simulated) { setPlaylistId(''); setPlaylistTitle('') }
-    try { window.localStorage.setItem('karaoke-youtube-playlist', value.trim()) } catch { /* armazenamento indisponível */ }
+    try { window.localStorage.setItem(playlistStorageKey(nightId), value.trim()) } catch { /* armazenamento indisponível */ }
   }} placeholder="https://music.youtube.com/playlist?list=..." /></label>
 
   function chooseView(next: WorkbenchView) {
     setView(next)
-    try { window.localStorage.setItem('karaoke-workbench-view', next) } catch { /* armazenamento indisponível */ }
+    try { window.localStorage.setItem(`karaoke-workbench-view-${venueId}`, next) } catch { /* armazenamento indisponível */ }
   }
 
   useEffect(() => {

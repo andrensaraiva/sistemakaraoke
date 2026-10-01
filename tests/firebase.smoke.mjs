@@ -13,6 +13,13 @@ const authResponse = await fetch('http://127.0.0.1:9099/identitytoolkit.googleap
 })
 const account = await authResponse.json()
 assert.ok(authResponse.ok, `Não foi possível criar operador no emulador: ${JSON.stringify(account)}`)
+const secondResponse = await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo-key', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ email: 'operador.bar-teste@operators.example.com', password: 'operador', returnSecureToken: true }),
+})
+const secondAccount = await secondResponse.json()
+assert.ok(secondResponse.ok, 'Não foi possível criar o operador do segundo bar no emulador.')
 
 const testEnv = await initializeTestEnvironment({ projectId, firestore: { host: '127.0.0.1', port: 8080 } })
 let server
@@ -20,6 +27,8 @@ let browser
 try {
   await testEnv.withSecurityRulesDisabled(async (context) => {
     await context.firestore().doc(`admins/${account.localId}`).set({ active: true })
+    await context.firestore().doc('venues/bar-teste').set({ name: 'Bar de Teste', active: true })
+    await context.firestore().doc(`venues/bar-teste/operators/${secondAccount.localId}`).set({ active: true })
   })
   server = await createServer({ mode: 'emulator', server: { host: '127.0.0.1', port: 0 }, logLevel: 'silent' })
   await server.listen()
@@ -50,7 +59,7 @@ try {
   const guest = await guestContext.newPage()
 
   await operator.goto(`${origin}/operador`)
-  await operator.getByLabel('E-mail').fill(email)
+  await operator.getByLabel('Usuário ou e-mail').fill(email)
   await operator.getByLabel('Senha').fill(password)
   await operator.getByRole('button', { name: 'Entrar no painel' }).click()
   await operator.getByRole('button', { name: /Abrir nova noite/ }).waitFor()
@@ -116,7 +125,41 @@ try {
   await operator.goto(`${origin}/operador/relatorios`)
   await operator.getByRole('heading', { name: 'Relatórios da casa' }).waitFor()
   await operator.getByText('Canção Teste').first().waitFor()
-  console.log('Firebase emulado: login, pedido sem mesa, sincronização, chamada, conclusão e relatório verificados.')
+
+  const secondOperatorContext = await browser.newContext({ viewport, isMobile: true, hasTouch: true, locale: 'pt-BR' })
+  const secondGuestContext = await browser.newContext({ viewport, isMobile: true, hasTouch: true, locale: 'pt-BR' })
+  const secondOperator = await secondOperatorContext.newPage()
+  const secondGuest = await secondGuestContext.newPage()
+  await secondOperator.goto(`${origin}/b/bar-teste/operador`)
+  await secondOperator.getByText('Bar de Teste').first().waitFor()
+  await secondOperator.getByLabel('Usuário ou e-mail').fill('operador')
+  await secondOperator.getByLabel('Senha').fill('operador')
+  await secondOperator.getByRole('button', { name: 'Entrar no painel' }).click()
+  await secondOperator.getByRole('button', { name: /Abrir nova noite/ }).click()
+  await secondOperator.getByText('Noite aberta', { exact: false }).first().waitFor()
+  assert.match(await secondOperator.locator('.qr-preview').textContent(), /bar-teste/)
+  await secondGuest.goto(`${origin}/b/bar-teste/`)
+  await secondGuest.getByLabel(/Seu nome/).fill('Cantor do Segundo Bar')
+  await secondGuest.getByLabel(/Música/).fill('Música do Segundo Bar')
+  await secondGuest.getByLabel(/Artista/).fill('Artista Teste')
+  await secondGuest.getByRole('button', { name: /Entrar na fila/ }).click()
+  await secondGuest.getByText('Pedido enviado!').waitFor()
+  await secondOperator.getByRole('heading', { name: 'Música do Segundo Bar' }).waitFor()
+  assert.equal(await operator.getByText('Música do Segundo Bar').count(), 0)
+  await secondOperator.goto(`${origin}/b/bar-teste/operador/relatorios`)
+  await secondOperator.getByRole('heading', { name: 'Relatórios da casa' }).waitFor()
+  await secondOperator.getByText('Música do Segundo Bar').first().waitFor()
+  assert.equal(await secondOperator.getByText('Canção Teste').count(), 0)
+  await secondOperator.goto(`${origin}/b/bar-teste/operador`)
+  await secondOperator.getByRole('button', { name: 'Encerrar novos pedidos' }).click()
+  await secondOperator.getByRole('button', { name: 'Encerrar pedidos', exact: true }).click()
+  secondOperator.once('dialog', (dialog) => dialog.accept())
+  await secondOperator.getByRole('button', { name: 'Começar nova noite' }).click()
+  await secondOperator.getByRole('heading', { name: 'Música do Segundo Bar' }).waitFor({ state: 'hidden' })
+  await secondOperator.goto(`${origin}/b/bar-teste/operador/relatorios`)
+  await secondOperator.getByText('Música do Segundo Bar').first().waitFor()
+  assert.equal(await operator.getByText('Música do Segundo Bar').count(), 0)
+  console.log('Firebase emulado: dois bares, operadores, filas, QR e relatórios separados; fluxo completo do primeiro bar verificado.')
 } finally {
   await browser?.close()
   await server?.close()

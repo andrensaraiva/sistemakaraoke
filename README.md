@@ -12,6 +12,20 @@ Esta instalação está ligada ao projeto `sistemakaraoke-andre` no plano Spark.
 
 A página dos convidados não mostra links para o operador ou para o telão. Salve os endereços da equipe como favoritos ou adicione-os à tela inicial do celular ou tablet. O painel exige login mesmo que alguém conheça o endereço.
 
+### Vários bares e playlists por noite
+
+Cada bar novo usa um identificador no endereço. O bar de teste usa:
+
+- Convidados e QR: `https://karaokedacasa.web.app/b/bar-teste/`
+- Operador: `https://operadorkdc.web.app/b/bar-teste/`
+- Telão: `https://telaokdc.web.app/b/bar-teste/`
+
+O endereço sem `/b/...` continua sendo o bar original. Cada bar tem sua própria fila, pedidos, telão, operador e relatórios. Ao abrir **Começar nova noite**, o operador cria uma fila vazia; a noite anterior fica no histórico. A troca é manual para não interromper uma festa que passe da meia-noite. O QR do bar permanece o mesmo todos os dias.
+
+O cadastro de um bar é feito pelo responsável da plataforma no Firebase, uma única vez: crie `venues/ID-DO-BAR` com `name` (texto) e `active: true`; crie o usuário em Authentication e, sob esse bar, `venues/ID-DO-BAR/operators/UID-DO-USUARIO` com `active: true`. O nome de usuário simples `operador` do bar `bar-teste` corresponde internamente ao e-mail `operador.bar-teste@operators.example.com` no Firebase Auth. O bar só recebe seu link, usuário e senha. O operador antigo continua usando seu e-mail e o documento `admins/UID`.
+
+Cada bar pode criar sua própria playlist da noite no YouTube Music e informar seu link no painel. Esse link fica salvo **neste navegador, para esta noite**; na próxima noite o campo começa vazio. A fila do sistema funciona sem playlist ou conta Google. Para a opção **No painel** acessar playlists reais, o responsável da plataforma configura **um único** cliente OAuth Web no projeto; cada bar conecta a própria conta Google no painel. Nenhum bar precisa criar um ID de cliente OAuth.
+
 O endereço anterior `https://sistemakaraoke-andre.web.app` continua ativo como site padrão do mesmo projeto Firebase. Os três endereços acima são sites Hosting separados, com os alvos `karaoke`, `operador` e `telao` em `.firebaserc`. Os caminhos antigos `/operador` e `/telao` no site dos convidados redirecionam para os endereços da equipe.
 
 Nesta máquina, `.env.local` contém a configuração do aplicativo Web e `.operator-credentials.local` contém o acesso inicial do operador. Esses arquivos são ignorados pelo Git. A primeira noite foi aberta para validar o site. O painel mostra se novos pedidos estão abertos ou fechados.

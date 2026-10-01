@@ -9,7 +9,8 @@ import { karaokeSearch, nextEligibleIndex, youtubeUrl, youtubeVideoId, type Queu
 import { Brand, DemoBanner } from './Brand'
 import { useCountdown, useRequests, useRoom } from './hooks'
 import { ReportsPage } from './ReportsPage'
-import { guestUrl, tvUrl } from './siteUrls'
+import { guestUrl, printUrl, reportsUrl, tvUrl } from './siteUrls'
+import { venueId, venuePath } from '../venueContext'
 import { YouTubeWorkbench } from './YouTubeWorkbench'
 
 type RunAction = (action: () => Promise<void>, success?: string) => Promise<void>
@@ -17,14 +18,14 @@ const searchProviderLabels: Record<SearchProvider, string> = { youtube: 'YouTube
 
 function storedSearchProvider(): SearchProvider {
   try {
-    const value = window.localStorage.getItem('karaoke-search-provider')
+    const value = window.localStorage.getItem(`karaoke-search-provider-${venueId}`)
     if (value === 'youtube' || value === 'youtube_music' || value === 'spotify') return value
   } catch { /* armazenamento indisponível */ }
   return 'youtube'
 }
 
 export function OperatorPage() {
-  const reportRoute = window.location.pathname === '/operador/relatorios'
+  const reportRoute = venuePath === '/operador/relatorios'
   const room = useRoom()
   const tvMode = room.tvMode ?? 'video'
   const [admin, setAdmin] = useState({ ready: demoMode, allowed: demoMode, email: demoMode ? 'Modo de demonstração' : '' })
@@ -35,7 +36,7 @@ export function OperatorPage() {
   const [searchProvider, setSearchProvider] = useState<SearchProvider>(storedSearchProvider)
   const closeDialogRef = useRef<HTMLDialogElement>(null)
   useEffect(() => watchAdmin(setAdmin), [])
-  useEffect(() => { try { window.localStorage.setItem('karaoke-search-provider', searchProvider) } catch { /* armazenamento indisponível */ } }, [searchProvider])
+  useEffect(() => { try { window.localStorage.setItem(`karaoke-search-provider-${venueId}`, searchProvider) } catch { /* armazenamento indisponível */ } }, [searchProvider])
   const requests = useRequests(room.nightId, admin.allowed && !reportRoute)
   const pending = requests.filter((request) => request.status === 'pending').sort((a, b) => a.createdAt - b.createdAt)
   const activeRequests = requests.filter((request) => ['pending', 'queued', 'calling', 'singing'].includes(request.status))
@@ -66,13 +67,13 @@ export function OperatorPage() {
 
   if (!admin.ready) return <div className="operator-shell loading-screen"><Brand /><p>Carregando painel...</p></div>
   if (!admin.allowed) return <div className="operator-shell login-shell"><DemoBanner /><div className="login-card"><Brand /><span className="section-kicker">ÁREA RESTRITA</span><h1>Bem-vindo de volta.</h1><p>Entre para organizar a noite de karaokê.</p>
-    {admin.email ? <><p className="feedback">Este usuário ainda não foi autorizado como operador.</p><button className="button button-outline" onClick={() => doAction(signOutAdmin)}>Sair desta conta</button></> : <form onSubmit={handleLogin}><label>E-mail<input type="email" required value={credentials.email} onChange={(event) => setCredentials({ ...credentials, email: event.target.value })} /></label><label>Senha<input type="password" required value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} /></label><button className="button button-primary" type="submit" disabled={busy}>Entrar no painel</button></form>}
+    {admin.email ? <><p className="feedback">Este usuário ainda não foi autorizado como operador deste bar.</p><button className="button button-outline" onClick={() => doAction(signOutAdmin)}>Sair desta conta</button></> : <form onSubmit={handleLogin}><label>Usuário ou e-mail<input type="text" autoComplete="username" required value={credentials.email} onChange={(event) => setCredentials({ ...credentials, email: event.target.value })} /></label><label>Senha<input type="password" autoComplete="current-password" required value={credentials.password} onChange={(event) => setCredentials({ ...credentials, password: event.target.value })} /></label><button className="button button-primary" type="submit" disabled={busy}>Entrar no painel</button></form>}
     {notice && <p className="feedback" role="alert">{notice}</p>}</div></div>
 
   if (reportRoute) return <ReportsPage room={room} />
 
   return <div className="operator-shell"><DemoBanner />
-    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href="/operador/relatorios">Relatórios ↗</a><a href={guestUrl} target="_blank" rel="noreferrer">Visão do cliente ↗</a><a href={tvUrl} target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => doAction(signOutAdmin)}>Sair</button>}</nav></header>
+    <header className="operator-header"><Brand small /><nav aria-label="Acesso rápido"><a href={reportsUrl}>Relatórios ↗</a><a href={guestUrl} target="_blank" rel="noreferrer">Visão do cliente ↗</a><a href={tvUrl} target="_blank" rel="noreferrer">Abrir telão ↗</a>{!demoMode && <button onClick={() => doAction(signOutAdmin)}>Sair</button>}</nav></header>
     <main className="operator-main"><div className="operator-title"><div><span className="section-kicker">CENTRAL DO KARAOKÊ</span><h1>Painel da noite<span className="title-spark">✦</span></h1><p>Pedidos, palco e próxima música em um só lugar.</p></div><span className={`session-pill ${room.open ? 'session-open' : ''}`}>{room.open ? '● Noite aberta' : '○ Noite fechada'}</span></div>
       {!room.nightId ? <section className="card setup-card"><div><span className="section-kicker">COMEÇAR</span><h2>Abra a noite para receber pedidos</h2><p>Você decide durante cada chamada se a pessoa ganha outra chance.</p></div><div className="setup-actions"><button className="button button-primary" disabled={busy} onClick={() => doAction(openNight, 'Noite aberta. Os QR codes já podem ser usados.')}>Abrir nova noite ↗</button></div></section> : <>
         {!room.open && <div className="closed-notice" role="status">Pedidos encerrados. A fila atual continua em andamento. <button className="mini-button" disabled={busy} onClick={() => doAction(reopenNight, 'Pedidos reabertos.')}>Reabrir pedidos</button></div>}
@@ -94,7 +95,7 @@ export function OperatorPage() {
           <section className="card operator-section"><div className="section-heading-row"><div><span className="section-kicker">CHEGANDO AGORA</span><h2>Novos pedidos</h2></div><span className="section-count">{pending.length}</span></div>
             {pending.length ? <div className="pending-list">{pending.map((request) => <PendingCard key={request.id} request={request} searchProvider={searchProvider} busy={busy} onAction={doAction} />)}</div> : <p className="empty-copy">Nenhum pedido aguardando aprovação.</p>}
           </section>
-          <YouTubeWorkbench requests={activeRequests} onUseVideo={(request, url) => doAction(
+          <YouTubeWorkbench key={room.nightId} nightId={room.nightId} requests={activeRequests} onUseVideo={(request, url) => doAction(
             () => request.status === 'pending' ? approveRequest(request.id, url) : saveSelectedUrl(request.id, url),
             request.status === 'pending' ? 'Vídeo aprovado e adicionado à fila do sistema.' : 'Vídeo escolhido para a fila do sistema.',
           )} />
@@ -118,7 +119,7 @@ export function OperatorPage() {
               <p className="helper">A mudança aparece no telão aberto. No modo clássico, você pode abrir o YouTube separadamente. Trocar durante uma música interrompe o vídeo; ao voltar, ele recomeça.</p>
             </div>
           </section>
-          <section className="card qr-card"><span className="section-kicker">QR ÚNICO</span><h2>Um código para todos</h2><p>Todos acessam o mesmo formulário. A mesa continua opcional para quem fizer o pedido.</p><div className="qr-preview"><QRCodeSVG value={guestUrl} size={152} marginSize={1} /><span>Peça sua música<br /><small>{new URL(guestUrl).host}</small></span></div><button className="button button-outline" onClick={() => window.open('/imprimir', '_blank')}>Imprimir QR único ↗</button><details className="table-qr-details"><summary>QR por mesa (para usar depois)</summary><p>Cartelas com o número da mesa preenchido automaticamente.</p><label>Número de mesas<input type="number" min={1} max={80} value={tableCount} onChange={(event) => setTableCount(Math.min(80, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="button button-outline" onClick={() => window.open(`/imprimir?mesas=${tableCount}`, '_blank')}>Abrir cartelas por mesa ↗</button></details></section>
+          <section className="card qr-card"><span className="section-kicker">QR ÚNICO</span><h2>Um código para todos</h2><p>Todos acessam o mesmo formulário deste bar. A mesa continua opcional.</p><div className="qr-preview"><QRCodeSVG value={guestUrl} size={152} marginSize={1} /><span>Peça sua música<br /><small>{new URL(guestUrl).host}{new URL(guestUrl).pathname}</small></span></div><button className="button button-outline" onClick={() => window.open(printUrl, '_blank')}>Imprimir QR único ↗</button><details className="table-qr-details"><summary>QR por mesa (para usar depois)</summary><p>Cartelas com o número da mesa preenchido automaticamente.</p><label>Número de mesas<input type="number" min={1} max={80} value={tableCount} onChange={(event) => setTableCount(Math.min(80, Math.max(1, Number(event.target.value) || 1)))} /></label><button className="button button-outline" onClick={() => window.open(`${printUrl}?mesas=${tableCount}`, '_blank')}>Abrir cartelas por mesa ↗</button></details></section>
         </aside></section>
       </>}
       {notice && <p className="feedback operator-feedback" role="status">{notice}</p>}

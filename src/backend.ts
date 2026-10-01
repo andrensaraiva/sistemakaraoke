@@ -10,6 +10,7 @@ import {
   youtubeVideoId, type Room, type SongRequest, type TvMode,
 } from './domain'
 import { mergeReportRequests, type NightRecord, type ReportData } from './reports'
+import { legacyVenue, operatorEmail, venueId } from './venueContext'
 
 const settings = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -37,11 +38,20 @@ if (useEmulators && auth && db) {
   connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true })
   connectFirestoreEmulator(db, '127.0.0.1', 8080)
 }
-const mainRoom = db ? doc(db, 'rooms', 'main') : null
+const roomPath = legacyVenue ? 'rooms/main' : `venues/${venueId}/rooms/main`
+const mainRoom = db ? doc(db, roomPath) : null
+
+export async function loadVenue(): Promise<{ name: string; active: boolean } | null> {
+  if (legacyVenue) return { name: import.meta.env.VITE_VENUE_NAME || 'Karaokê da Casa', active: true }
+  if (demoMode) return { name: venueId === 'bar-teste' ? 'Bar de Teste' : venueId, active: true }
+  const snapshot = await getDoc(doc(db!, 'venues', venueId))
+  if (!snapshot.exists() || snapshot.data().active !== true) return null
+  return { name: String(snapshot.data().name || venueId), active: true }
+}
 
 type Listener = () => void
 type DemoData = { room: Room; requests: SongRequest[]; archive: SongRequest[]; nights: NightRecord[] }
-const demoKey = 'karaoke-retro-demo-v1'
+const demoKey = legacyVenue ? 'karaoke-retro-demo-v1' : `karaoke-retro-demo-v1-${venueId}`
 const demoChannel = typeof BroadcastChannel !== 'undefined' ? new BroadcastChannel(demoKey) : null
 const localListeners = new Set<Listener>()
 
@@ -128,17 +138,17 @@ function listenDemo(listener: Listener): Listener {
 
 function requestRef(id: string) {
   if (!db) throw new Error('Firebase não configurado.')
-  return doc(db, 'rooms', 'main', 'requests', id)
+  return doc(db, `${roomPath}/requests`, id)
 }
 
 function nightRef(id: string) {
   if (!db) throw new Error('Firebase não configurado.')
-  return doc(db, 'rooms', 'main', 'nights', id)
+  return doc(db, `${roomPath}/nights`, id)
 }
 
 function archiveRef(request: SongRequest) {
   if (!db) throw new Error('Firebase não configurado.')
-  return doc(db, 'rooms', 'main', 'archive', `${request.id}_${request.createdAt}`)
+  return doc(db, `${roomPath}/archive`, `${request.id}_${request.createdAt}`)
 }
 
 export async function loadReports(): Promise<ReportData> {
@@ -147,9 +157,9 @@ export async function loadReports(): Promise<ReportData> {
     return { nights: data.nights, requests: mergeReportRequests(data.requests, data.archive) }
   }
   const [nights, requests, archive] = await Promise.all([
-    getDocs(collection(db!, 'rooms', 'main', 'nights')),
-    getDocs(collection(db!, 'rooms', 'main', 'requests')),
-    getDocs(collection(db!, 'rooms', 'main', 'archive')),
+    getDocs(collection(db!, `${roomPath}/nights`)),
+    getDocs(collection(db!, `${roomPath}/requests`)),
+    getDocs(collection(db!, `${roomPath}/archive`)),
   ])
   return {
     nights: nights.docs.map((item) => item.data() as NightRecord),
@@ -176,7 +186,7 @@ export function watchRoom(callback: (room: Room) => void): Listener {
 export function watchRequests(nightId: string, callback: (requests: SongRequest[]) => void): Listener {
   if (!nightId) { callback([]); return () => {} }
   if (demoMode) return listenDemo(() => callback(readDemo().requests.filter((item) => item.nightId === nightId)))
-  return onSnapshot(query(collection(db!, 'rooms', 'main', 'requests'), where('nightId', '==', nightId)),
+  return onSnapshot(query(collection(db!, `${roomPath}/requests`), where('nightId', '==', nightId)),
     (snapshot) => callback(snapshot.docs.map((item) => item.data() as SongRequest)))
 }
 
@@ -192,7 +202,7 @@ export function watchAdmin(callback: (state: { ready: boolean; allowed: boolean;
   return onAuthStateChanged(auth!, async (user) => {
     if (!user) { callback({ ready: true, allowed: false, email: '' }); return }
     try {
-      const admin = await getDoc(doc(db!, 'admins', user.uid))
+      const admin = await getDoc(legacyVenue ? doc(db!, 'admins', user.uid) : doc(db!, 'venues', venueId, 'operators', user.uid))
       callback({ ready: true, allowed: admin.exists() && admin.data().active === true, email: user.email ?? '' })
     } catch {
       callback({ ready: true, allowed: false, email: user.email ?? '' })
@@ -200,9 +210,9 @@ export function watchAdmin(callback: (state: { ready: boolean; allowed: boolean;
   })
 }
 
-export async function signInAdmin(email: string, password: string) {
+export async function signInAdmin(identity: string, password: string) {
   if (!auth) return
-  await signInWithEmailAndPassword(auth, email, password)
+  await signInWithEmailAndPassword(auth, operatorEmail(identity), password)
 }
 
 export async function signOutAdmin() {

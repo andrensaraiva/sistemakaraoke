@@ -15,6 +15,21 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/rooms/main).data;
     }
 
+    function venueActive(venueId) {
+      return exists(/databases/$(database)/documents/venues/$(venueId)) &&
+        get(/databases/$(database)/documents/venues/$(venueId)).data.active == true;
+    }
+
+    function isVenueOperator(venueId) {
+      return signedIn() && venueActive(venueId) &&
+        exists(/databases/$(database)/documents/venues/$(venueId)/operators/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/venues/$(venueId)/operators/$(request.auth.uid)).data.active == true;
+    }
+
+    function venueRoom(venueId) {
+      return get(/databases/$(database)/documents/venues/$(venueId)/rooms/main).data;
+    }
+
     function validVideoUrl(value) {
       return value is string && value.size() <= 500 && (
         value == '' ||
@@ -24,7 +39,7 @@ service cloud.firestore {
       );
     }
 
-    function validGuestRequest(data, requestId) {
+    function validGuestRequest(data, requestId, room) {
       return data.keys().hasAll([
           'id', 'nightId', 'ownerUid', 'name', 'table', 'song', 'artist',
           'suggestedUrl', 'selectedUrl', 'status', 'misses', 'onMyWay', 'createdAt'
@@ -33,9 +48,9 @@ service cloud.firestore {
           'id', 'nightId', 'ownerUid', 'name', 'table', 'song', 'artist',
           'suggestedUrl', 'selectedUrl', 'status', 'misses', 'onMyWay', 'createdAt'
         ]) &&
-        mainRoom().open == true &&
+        room.open == true &&
         data.id == requestId &&
-        data.nightId == mainRoom().nightId &&
+        data.nightId == room.nightId &&
         requestId == data.nightId + '_' + request.auth.uid &&
         data.ownerUid == request.auth.uid &&
         data.name is string && data.name.size() > 0 && data.name.size() <= 40 &&
@@ -72,16 +87,58 @@ service cloud.firestore {
         allow get: if isAdmin() || (signedIn() &&
           requestId == mainRoom().nightId + '_' + request.auth.uid);
         allow list: if isAdmin();
-        allow create: if signedIn() && validGuestRequest(request.resource.data, requestId);
+        allow create: if signedIn() && validGuestRequest(request.resource.data, requestId, mainRoom());
         allow update: if isAdmin() || (
           signedIn() && resource.data.ownerUid == request.auth.uid &&
           resource.data.status in ['completed', 'removed', 'rejected', 'cancelled'] &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'table', 'song', 'artist', 'suggestedUrl', 'selectedUrl',
             'status', 'misses', 'onMyWay', 'createdAt'
-          ]) && validGuestRequest(request.resource.data, requestId)
+          ]) && validGuestRequest(request.resource.data, requestId, mainRoom())
         );
         allow delete: if isAdmin();
+      }
+    }
+
+    match /venues/{venueId} {
+      allow get: if resource.data.active == true;
+      allow list, create, update, delete: if false;
+
+      match /operators/{operatorId} {
+        allow get: if signedIn() && request.auth.uid == operatorId;
+        allow list, create, update, delete: if false;
+      }
+
+      match /rooms/{roomId} {
+        allow get: if roomId == 'main' && venueActive(venueId);
+        allow list: if false;
+        allow create, update, delete: if roomId == 'main' && isVenueOperator(venueId);
+
+        match /nights/{nightId} {
+          allow read, write: if roomId == 'main' && isVenueOperator(venueId);
+        }
+
+        match /archive/{archiveId} {
+          allow read, write: if roomId == 'main' && isVenueOperator(venueId);
+        }
+
+        match /requests/{requestId} {
+          allow get: if roomId == 'main' && venueActive(venueId) &&
+            (isVenueOperator(venueId) || (signedIn() &&
+              requestId == venueRoom(venueId).nightId + '_' + request.auth.uid));
+          allow list: if roomId == 'main' && isVenueOperator(venueId);
+          allow create: if roomId == 'main' && venueActive(venueId) && signedIn() &&
+            validGuestRequest(request.resource.data, requestId, venueRoom(venueId));
+          allow update: if roomId == 'main' && (isVenueOperator(venueId) || (
+            venueActive(venueId) && signedIn() && resource.data.ownerUid == request.auth.uid &&
+            resource.data.status in ['completed', 'removed', 'rejected', 'cancelled'] &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'name', 'table', 'song', 'artist', 'suggestedUrl', 'selectedUrl',
+              'status', 'misses', 'onMyWay', 'createdAt'
+            ]) && validGuestRequest(request.resource.data, requestId, venueRoom(venueId))
+          ));
+          allow delete: if roomId == 'main' && isVenueOperator(venueId);
+        }
       }
     }
   }
