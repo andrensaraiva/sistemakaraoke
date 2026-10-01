@@ -27,7 +27,7 @@ npm run dev
 
 Para testar o telão nesta máquina sem usar o Firebase publicado, rode `npm.cmd run dev:demo`. O arquivo `.env.demo` desativa a conexão com o Firebase mesmo quando `.env.local` está configurado. Abra `http://127.0.0.1:5173/operador` e `http://127.0.0.1:5173/telao` em duas abas **do mesmo navegador**; a demonstração compartilha os dados entre abas, mas não entre dispositivos.
 
-No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e clique em **Salvar**. Depois clique em **Chamar próximo**, **Confirmar presença** e **Tocar no telão**. Volte à aba do telão para ver o vídeo ao lado da fila. Para simular celular ou tablet no computador, use o modo de dispositivo das ferramentas do navegador na aba do operador.
+No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e clique em **Salvar**. Depois clique em **Chamar próximo** e **Tocar no telão**. No modo demonstração, esse botão fica disponível imediatamente, sem confirmação de presença do cantor; a versão com Firebase mantém a confirmação. Volte à aba do telão para ver o vídeo ao lado da fila. Para simular celular ou tablet no computador, use o modo de dispositivo das ferramentas do navegador na aba do operador.
 
 Em **Operação → Telão**, alterne entre **Vídeo + fila** e **Painel clássico**. A aba do telão muda imediatamente, e a escolha continua nas próximas noites. O modo clássico mostra o cantor e a fila sem incorporar o vídeo; nele, o operador pode abrir o YouTube separadamente. Trocar durante uma música interrompe a reprodução incorporada.
 

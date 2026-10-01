@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { guestUid, submitRequest, watchOwnRequest } from '../backend'
+import { demoMode, guestUid, submitRequest, watchOwnRequest } from '../backend'
 import { publicPosition, terminalStatuses, youtubeUrl, type SongRequest } from '../domain'
 import { Brand, DemoBanner } from './Brand'
 import { useRoom } from './hooks'
@@ -66,7 +66,7 @@ export function GuestPage() {
         <h2>{own.song}</h2><p className="muted">{own.artist} · {own.name}{own.table && ` · Mesa ${own.table}`}</p>
         {own.status === 'pending' && <p>O operador está conferindo a versão da música.</p>}
         {own.status === 'queued' && <div className={`position-callout ${position > 0 && position <= 3 ? 'position-near' : ''}`}><strong>{position > 0 ? `${position}º` : '…'}</strong><span>{position === 0 ? 'Atualizando sua posição na fila.' : position === 1 ? 'Você é o próximo. Fique perto do palco!' : position === 2 ? 'Prepare-se: falta uma apresentação.' : `Faltam ${position - 1} apresentações antes da sua.`}</span></div>}
-        {own.status === 'calling' && <div className="turn-callout"><span className="pulse-dot" aria-hidden="true" />Sua vez! Dirija-se ao palco. O operador confirmará sua chegada.</div>}
+        {own.status === 'calling' && <div className="turn-callout"><span className="pulse-dot" aria-hidden="true" />{demoMode ? 'Sua vez! Dirija-se ao palco. O operador pode iniciar a música.' : 'Sua vez! Dirija-se ao palco. O operador confirmará sua chegada.'}</div>}
         {own.status === 'singing' && <p>É seu momento. Divirta-se!</p>}
         {own.misses > 0 && <p className="absence-note">Chamadas perdidas: {own.misses}</p>}
       </section>}

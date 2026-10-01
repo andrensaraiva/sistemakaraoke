@@ -81,6 +81,7 @@ try {
   await tv.getByText('Chegou a sua vez de brilhar.').waitFor()
   await guest.getByText('Sua vez! Dirija-se ao palco. O operador confirmará sua chegada.').waitFor()
   assert.equal(await guest.getByRole('button', { name: 'Estou indo' }).count(), 0)
+  assert.equal(await operator.getByRole('button', { name: 'Tocar no telão' }).isDisabled(), true)
   await operator.getByRole('button', { name: 'Confirmar presença' }).click()
   await operator.getByText('✓ Presença confirmada').first().waitFor()
   await operator.getByRole('button', { name: 'Confirmar presença' }).waitFor({ state: 'hidden' })
