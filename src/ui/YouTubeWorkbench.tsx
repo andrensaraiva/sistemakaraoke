@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { demoMode } from '../backend'
 import { youtubeVideoId, type SongRequest } from '../domain'
 import { loadGoogleOAuth, type GoogleTokenClient } from '../googleOAuth'
 import { addVideoToPlaylist, getPlaylistTitle, playlistIdFromInput, searchYouTube, type YouTubeVideo } from '../youtube'
 
 const scope = 'https://www.googleapis.com/auth/youtube.force-ssl'
 const clientId = import.meta.env.VITE_GOOGLE_OAUTH_CLIENT_ID?.trim() || ''
+const simulated = demoMode && !clientId
+const demoVideo: YouTubeVideo = { id: 'M7lc1UVf-VE', title: 'Vídeo de teste do YouTube (não é karaokê)', channel: 'Demonstração', thumbnail: '' }
 
 function storedPlaylistUrl(): string {
   try { return window.localStorage.getItem('karaoke-youtube-playlist') || '' }
@@ -24,8 +27,8 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
   const [ready, setReady] = useState(false)
   const [token, setToken] = useState<string | null>(null)
   const [playlistInput, setPlaylistInput] = useState(storedPlaylistUrl)
-  const [playlistId, setPlaylistId] = useState('')
-  const [playlistTitle, setPlaylistTitle] = useState('')
+  const [playlistId, setPlaylistId] = useState(simulated ? 'demo-playlist' : '')
+  const [playlistTitle, setPlaylistTitle] = useState(simulated ? 'Playlist simulada' : '')
   const [selectedRequestId, setSelectedRequestId] = useState('')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<YouTubeVideo[]>([])
@@ -34,7 +37,7 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
   const [busy, setBusy] = useState(false)
   const selectedRequest = requests.find((request) => request.id === selectedRequestId)
   const selectedVideoId = youtubeVideoId(selectedRequest?.selectedUrl || selectedRequest?.suggestedUrl || '')
-  const connected = Boolean(token)
+  const connected = simulated || Boolean(token)
   const nativePlaylistId = playlistIdFromInput(playlistInput)
 
   useEffect(() => {
@@ -93,9 +96,9 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
     setBusy(true); setMessage('')
     try {
       if (!query.trim()) throw new Error('Digite o nome da música para buscar.')
-      const videos = await searchYouTube(query.trim(), activeToken())
+      const videos = simulated ? [demoVideo] : await searchYouTube(query.trim(), activeToken())
       setResults(videos)
-      setMessage(videos.length ? `${videos.length} versões encontradas no YouTube.` : 'Nenhum vídeo encontrado. Tente outros termos.')
+      setMessage(simulated ? 'Busca simulada: use o vídeo de teste abaixo para conhecer o fluxo.' : videos.length ? `${videos.length} versões encontradas no YouTube.` : 'Nenhum vídeo encontrado. Tente outros termos.')
     } catch (error) { setMessage(errorMessage(error)) }
     finally { setBusy(false) }
   }
@@ -104,6 +107,11 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
     setBusy(true); setMessage('')
     try {
       if (!playlistId) throw new Error('Selecione primeiro a playlist da noite.')
+      if (simulated) {
+        setAddedIds((previous) => new Set(previous).add(videoId))
+        setMessage('Adicionado somente à playlist simulada. Nenhuma conta Google foi alterada.')
+        return
+      }
       const result = await addVideoToPlaylist(playlistId, videoId, activeToken())
       setAddedIds((previous) => new Set(previous).add(videoId))
       setMessage(result === 'added' ? `Vídeo adicionado à playlist ${playlistTitle}.` : `Este vídeo já estava na playlist ${playlistTitle}.`)
@@ -120,22 +128,23 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
       <a className="button button-outline" href="https://music.youtube.com/" target="_blank" rel="noopener noreferrer">Abrir YouTube Music ↗</a>
       <label>Link da playlist da noite<input type="url" value={playlistInput} onChange={(event) => {
         const value = event.target.value
-        setPlaylistInput(value); setPlaylistId(''); setPlaylistTitle('')
+        setPlaylistInput(value)
+        if (!simulated) { setPlaylistId(''); setPlaylistTitle('') }
         try { window.localStorage.setItem('karaoke-youtube-playlist', value.trim()) } catch { /* armazenamento indisponível */ }
       }} placeholder="https://music.youtube.com/playlist?list=..." /></label>
       {nativePlaylistId && <a className="button button-outline" href={`https://music.youtube.com/playlist?list=${nativePlaylistId}`} target="_blank" rel="noopener noreferrer">Abrir minha playlist ↗</a>}
     </div>
     <h3 className="workbench-subtitle">Busca dentro do painel</h3>
     <p>Escolha a versão para a fila do sistema e adicione à playlist da noite com um clique separado.</p>
-    {!clientId ? <p className="workbench-note">A conexão com Google precisa de um ID OAuth configurado no projeto.</p> : <>
-      <div className="workbench-connect">
+    {!clientId && !simulated ? <p className="workbench-note">A conexão com Google precisa de um ID OAuth configurado no projeto.</p> : <>
+      {simulated ? <p className="workbench-note">Demonstração local: a busca retorna um vídeo de teste e a playlist é simulada. Nenhum item será salvo na sua conta Google.</p> : <><div className="workbench-connect">
         <span>{connected ? 'Conta Google conectada nesta sessão' : ready ? 'Conecte a conta que criou a playlist' : 'Carregando conexão com Google...'}</span>
         <button className="button button-outline" type="button" disabled={!ready || busy} onClick={() => clientRef.current?.requestAccessToken()}>{connected ? 'Trocar ou renovar conta' : 'Conectar conta Google'}</button>
       </div>
       <div className="workbench-playlist">
         <span>Use a playlist informada acima na busca integrada.</span>
         <button className="button button-outline" type="button" disabled={!connected || busy} onClick={() => void verifyPlaylist()}>Selecionar playlist</button>
-      </div>
+      </div></>}
       {playlistTitle && <p className="workbench-selected">✓ {playlistTitle}</p>}
       <label>Pedido da fila
         <select value={selectedRequestId} onChange={(event) => {
@@ -163,7 +172,7 @@ export function YouTubeWorkbench({ requests, onUseVideo }: {
           </div>
         </div>
       </li>)}</ol>}
-      <p className="helper">O YouTube Music mostra apenas vídeos que ele classifica como música. A playlist e a fila do sistema continuam independentes.</p>
+      <p className="helper">{simulated ? 'Para pesquisar vídeos reais e alterar sua playlist, configure a conexão Google no projeto.' : 'O YouTube Music mostra apenas vídeos que ele classifica como música. A playlist e a fila do sistema continuam independentes.'}</p>
     </>}
   </section>
 }

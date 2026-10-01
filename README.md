@@ -37,6 +37,8 @@ O operador pode escolher **YouTube**, **YouTube Music** ou **Spotify** em **Oper
 
 A seção **Buscar e montar playlist** oferece duas formas de trabalho. **Abrir YouTube Music** mostra a página original em outra janela; no computador, ela pode ficar ao lado do operador. A busca integrada permite pesquisar vídeos dentro do painel, escolher uma versão para a fila do sistema e, com um clique separado, adicioná-la à playlist criada na conta do YouTube Music. A página completa do YouTube Music não pode ser embutida no painel. A conexão com Google só é solicitada ao operador e o token de acesso fica apenas na memória desta aba; é preciso reconectar quando expirar ou recarregar a página.
 
+No `dev:demo`, a busca integrada usa um vídeo de teste e uma playlist simulada. Escolha uma pessoa em **Pedido da fila**, clique em **Buscar**, **Usar na fila** e **Adicionar à playlist** para experimentar o fluxo sem configurar Google. Essa busca não consulta músicas reais e não altera nenhuma playlist da conta Google. Para tocar o vídeo de teste, clique em **Chamar próximo** e **Tocar no telão**; abra `/telao` em outra aba do mesmo navegador e clique uma vez em **Preparar telão**.
+
 Para habilitar essa seção, no projeto Google Cloud usado para a integração:
 
 1. Ative a [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com) no projeto escolhido.

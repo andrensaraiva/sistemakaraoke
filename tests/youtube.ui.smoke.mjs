@@ -57,3 +57,29 @@ try {
   await server.close()
   delete process.env.VITE_GOOGLE_OAUTH_CLIENT_ID
 }
+
+const demoServer = await createServer({ envFile: false, server: { host: '127.0.0.1', port: 0 }, logLevel: 'silent' })
+await demoServer.listen()
+const demoOrigin = `http://127.0.0.1:${demoServer.httpServer.address().port}`
+const demoBrowser = await chromium.launch({ channel: 'msedge', headless: true })
+try {
+  const operator = await demoBrowser.newPage()
+  await operator.goto(`${demoOrigin}/operador`)
+  const workbench = operator.getByRole('region', { name: 'Busca integrada do YouTube' })
+  await workbench.getByText('Demonstração local: a busca retorna um vídeo de teste e a playlist é simulada.').waitFor()
+  await workbench.getByLabel('Pedido da fila').selectOption({ label: 'Ana · Evidências' })
+  await workbench.getByRole('button', { name: 'Buscar', exact: true }).click()
+  await workbench.getByText('Vídeo de teste do YouTube (não é karaokê)').waitFor()
+  await workbench.getByRole('button', { name: 'Usar na fila' }).click()
+  await operator.waitForFunction(() => document.querySelector('input[aria-label="Link escolhido para Evidências"]')?.value.includes('M7lc1UVf-VE'))
+  await workbench.getByRole('button', { name: 'Adicionar à playlist', exact: true }).click()
+  await workbench.getByText('Adicionado somente à playlist simulada. Nenhuma conta Google foi alterada.').waitFor()
+  await operator.getByRole('button', { name: /Chamar próximo/ }).click()
+  assert.equal(await operator.getByRole('button', { name: 'Tocar no telão' }).isEnabled(), true)
+  await operator.getByRole('button', { name: 'Tocar no telão' }).click()
+  await operator.getByRole('button', { name: 'Concluir música' }).waitFor()
+  console.log('Demonstração sem OAuth: busca, playlist simulada e reprodução imediata verificadas.')
+} finally {
+  await demoBrowser.close()
+  await demoServer.close()
+}
