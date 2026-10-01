@@ -5,13 +5,23 @@ import {
   demoMode, markAbsent, moveQueueEntry, openNight, rejectRequest, reopenNight, saveSelectedUrl,
   signInAdmin, signOutAdmin, startSong, watchAdmin,
 } from '../backend'
-import { nextEligibleIndex, youtubeSearch, youtubeUrl, youtubeVideoId, type QueueEntry, type SongRequest } from '../domain'
+import { karaokeSearch, nextEligibleIndex, youtubeUrl, youtubeVideoId, type QueueEntry, type SearchProvider, type SongRequest } from '../domain'
 import { Brand, DemoBanner } from './Brand'
 import { useCountdown, useRequests, useRoom } from './hooks'
 import { ReportsPage } from './ReportsPage'
 import { guestUrl, tvUrl } from './siteUrls'
+import { YouTubeWorkbench } from './YouTubeWorkbench'
 
 type RunAction = (action: () => Promise<void>, success?: string) => Promise<void>
+const searchProviderLabels: Record<SearchProvider, string> = { youtube: 'YouTube', youtube_music: 'YouTube Music', spotify: 'Spotify' }
+
+function storedSearchProvider(): SearchProvider {
+  try {
+    const value = window.localStorage.getItem('karaoke-search-provider')
+    if (value === 'youtube' || value === 'youtube_music' || value === 'spotify') return value
+  } catch { /* armazenamento indisponível */ }
+  return 'youtube'
+}
 
 export function OperatorPage() {
   const reportRoute = window.location.pathname === '/operador/relatorios'
@@ -22,10 +32,13 @@ export function OperatorPage() {
   const [notice, setNotice] = useState('')
   const [busy, setBusy] = useState(false)
   const [tableCount, setTableCount] = useState(12)
+  const [searchProvider, setSearchProvider] = useState<SearchProvider>(storedSearchProvider)
   const closeDialogRef = useRef<HTMLDialogElement>(null)
   useEffect(() => watchAdmin(setAdmin), [])
+  useEffect(() => { try { window.localStorage.setItem('karaoke-search-provider', searchProvider) } catch { /* armazenamento indisponível */ } }, [searchProvider])
   const requests = useRequests(room.nightId, admin.allowed && !reportRoute)
   const pending = requests.filter((request) => request.status === 'pending').sort((a, b) => a.createdAt - b.createdAt)
+  const activeRequests = requests.filter((request) => ['pending', 'queued', 'calling', 'singing'].includes(request.status))
   const byId = useMemo(() => new Map(requests.map((request) => [request.id, request])), [requests])
   const current = room.stage !== 'idle' ? byId.get(room.queue[0]?.id) : null
   const nextIndex = nextEligibleIndex(room)
@@ -68,22 +81,34 @@ export function OperatorPage() {
           <section className="stage-card"><div className="stage-heading"><span className="section-kicker">CONTROLE DO PALCO</span><span className="stage-state">{room.stage === 'calling' ? 'CHAMANDO' : room.stage === 'singing' ? 'CANTANDO' : 'PRONTO'}</span></div>
             {current ? <><h2>{current.name} {current.table && <small>· Mesa {current.table}</small>}</h2><p>{current.song} — {current.artist}</p>{current.onMyWay && <span className="presence-badge">✓ Presença confirmada</span>}
               {room.stage === 'calling' && <p className="countdown-label">{current.onMyWay ? 'Você já pode iniciar a música.' : `Chamada no telão: ${countdown > 0 ? `${countdown}s` : 'tempo encerrado; aguarde sua decisão'}`}</p>}
-              {room.stage === 'calling' && tvMode === 'video' && !youtubeVideoId(current.selectedUrl || current.suggestedUrl) && <p className="stage-video-note">Cole o link da versão escolhida na fila aprovada para tocar no telão.</p>}
+              {room.stage === 'calling' && tvMode === 'video' && !youtubeVideoId(current.selectedUrl || current.suggestedUrl) && <p className="stage-video-note">Cole o link da versão escolhida do YouTube ou YouTube Music na fila aprovada para tocar no telão.</p>}
             </> : <><h2>{room.queue[nextIndex]?.name ?? 'Palco livre'}</h2><p>{room.queue[nextIndex] ? `${room.queue[nextIndex].song}${room.queue[nextIndex].table ? ` · Mesa ${room.queue[nextIndex].table}` : ''}` : 'Aguardando o próximo cantor.'}</p></>}
             <div className="stage-actions">{room.stage === 'idle' ? <button className="button button-light" disabled={busy || nextIndex < 0} onClick={() => doAction(callNextSinger)}>Chamar próximo <span aria-hidden="true">↗</span></button> : room.stage === 'calling' ? <>{!current?.onMyWay && <button className="button button-stage-outline" disabled={busy || !current} onClick={() => { const id = room.queue[0]?.id; if (id) void doAction(() => confirmSingerPresence(id)) }}>Confirmar presença</button>}<button className="button button-light" disabled={busy || (countdown > 0 && !current?.onMyWay) || (tvMode === 'video' && !youtubeVideoId(current?.selectedUrl || current?.suggestedUrl || ''))} onClick={() => doAction(startSong, tvMode === 'video' ? 'Vídeo enviado ao telão.' : 'Apresentação iniciada no modo clássico.')}>{tvMode === 'video' ? 'Tocar no telão' : 'Música iniciada'}</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={() => doAction(markAbsent, 'Pedido devolvido para depois do próximo cantor.')}>Dar outra chance</button><button className="button button-stage-outline" disabled={busy || countdown > 0} onClick={cancelCurrentRequest}>Cancelar pedido</button></> : <button className="button button-light" disabled={busy} onClick={() => doAction(completeSong)}>Concluir música</button>}
-              {current && <a className="button button-stage-outline" target="_blank" rel="noreferrer" href={current.selectedUrl || current.suggestedUrl || youtubeSearch(current.song, current.artist)}>Abrir YouTube ↗</a>}</div>
+              {current && <a className="button button-stage-outline" target="_blank" rel="noreferrer" href={current.selectedUrl || current.suggestedUrl || karaokeSearch(searchProvider, current.song, current.artist)}>Abrir versão ↗</a>}</div>
           </section>
 
           <section className="card operator-section"><div className="section-heading-row"><div><span className="section-kicker">ROTAÇÃO JUSTA</span><h2>Fila aprovada</h2></div><span className="section-count">{room.queue.length} {room.queue.length === 1 ? 'pessoa' : 'pessoas'}</span></div>
-            {room.queue.length ? <ol className="operator-queue">{room.queue.map((entry, index) => <QueueCard key={entry.id} entry={entry} index={index} length={room.queue.length} lockedFirst={room.stage !== 'idle'} request={byId.get(entry.id)} busy={busy} onAction={doAction} />)}</ol> : <p className="empty-copy">Ainda não há pedidos aprovados.</p>}
+            {room.queue.length ? <ol className="operator-queue">{room.queue.map((entry, index) => <QueueCard key={entry.id} entry={entry} index={index} length={room.queue.length} lockedFirst={room.stage !== 'idle'} request={byId.get(entry.id)} searchProvider={searchProvider} busy={busy} onAction={doAction} />)}</ol> : <p className="empty-copy">Ainda não há pedidos aprovados.</p>}
           </section>
         </div><aside className="operator-side">
           <section className="card operator-section"><div className="section-heading-row"><div><span className="section-kicker">CHEGANDO AGORA</span><h2>Novos pedidos</h2></div><span className="section-count">{pending.length}</span></div>
-            {pending.length ? <div className="pending-list">{pending.map((request) => <PendingCard key={request.id} request={request} busy={busy} onAction={doAction} />)}</div> : <p className="empty-copy">Nenhum pedido aguardando aprovação.</p>}
+            {pending.length ? <div className="pending-list">{pending.map((request) => <PendingCard key={request.id} request={request} searchProvider={searchProvider} busy={busy} onAction={doAction} />)}</div> : <p className="empty-copy">Nenhum pedido aguardando aprovação.</p>}
           </section>
+          <YouTubeWorkbench requests={activeRequests} onUseVideo={(request, url) => doAction(
+            () => request.status === 'pending' ? approveRequest(request.id, url) : saveSelectedUrl(request.id, url),
+            request.status === 'pending' ? 'Vídeo aprovado e adicionado à fila do sistema.' : 'Vídeo escolhido para a fila do sistema.',
+          )} />
           <section className="card settings-card">
             <span className="section-kicker">AJUSTES DA NOITE</span><h2>Operação</h2>
             <p className="helper">Em cada chamada, escolha se o cantor volta para a fila ou se o pedido é cancelado.</p>
+            <label className="search-provider-label">Buscar karaokê em
+              <select value={searchProvider} onChange={(event) => setSearchProvider(event.target.value as SearchProvider)}>
+                <option value="youtube">YouTube</option>
+                <option value="youtube_music">YouTube Music</option>
+                <option value="spotify">Spotify</option>
+              </select>
+            </label>
+            <p className="helper">A busca abre na sua conta em outra aba. Para tocar vídeo no telão, salve o link direto do YouTube ou YouTube Music. O Spotify serve para busca e uso com o painel clássico.</p>
             {room.open ? <button className="text-button" disabled={busy} onClick={() => closeDialogRef.current?.showModal()}>Encerrar novos pedidos</button> : <button className="text-button" onClick={() => { if (window.confirm('Começar uma nova noite? A fila atual será arquivada e deixará de aparecer.')) doAction(openNight, 'Nova noite aberta.') }}>Começar nova noite</button>}
             <div className="tv-mode-settings"><span className="section-kicker">TELÃO</span><h3>Como mostrar a apresentação</h3>
               <div className="tv-mode-options" role="group" aria-label="Modo do telão">
@@ -102,28 +127,28 @@ export function OperatorPage() {
   </div>
 }
 
-function QueueCard({ entry, index, length, lockedFirst, request, busy, onAction }: {
+function QueueCard({ entry, index, length, lockedFirst, request, searchProvider, busy, onAction }: {
   entry: QueueEntry; index: number; length: number; lockedFirst: boolean; request?: SongRequest;
-  busy: boolean; onAction: RunAction,
+  searchProvider: SearchProvider; busy: boolean; onAction: RunAction,
 }) {
   const [linkEdit, setLinkEdit] = useState<string | null>(null)
   const link = linkEdit ?? (request?.selectedUrl || request?.suggestedUrl || '')
-  const search = youtubeSearch(entry.song, entry.artist)
+  const search = karaokeSearch(searchProvider, entry.song, entry.artist)
   const firstMovable = lockedFirst ? 1 : 0
   return <li className="queue-card"><span className="queue-number">{String(index + 1).padStart(2, '0')}</span><div className="operator-queue-body"><strong>{entry.name} {entry.table && <span>· Mesa {entry.table}</span>}</strong><p>{entry.song} — {entry.artist}</p>
-    <div className="operator-meta">{entry.misses > 0 && <span>{entry.misses} {entry.misses === 1 ? 'chamada perdida' : 'chamadas perdidas'}</span>}{request?.onMyWay && <span>✓ Presença confirmada</span>}<a href={request?.selectedUrl || request?.suggestedUrl || search} target="_blank" rel="noreferrer">Abrir vídeo ↗</a></div>
-    <div className="video-edit"><input type="url" aria-label={`Link escolhido para ${entry.song}`} value={link} onChange={(event) => setLinkEdit(event.target.value)} placeholder="Link da versão escolhida" /><button className="mini-button" disabled={busy || link === (request?.selectedUrl || request?.suggestedUrl || '')} onClick={() => { const clean = youtubeUrl(link); if (clean === null || (clean && !youtubeVideoId(clean))) { window.alert('Cole um link direto de vídeo do YouTube.'); return }; onAction(() => saveSelectedUrl(entry.id, clean), 'Vídeo escolhido salvo.') }}>Salvar</button></div>
+    <div className="operator-meta">{entry.misses > 0 && <span>{entry.misses} {entry.misses === 1 ? 'chamada perdida' : 'chamadas perdidas'}</span>}{request?.onMyWay && <span>✓ Presença confirmada</span>}<a href={request?.selectedUrl || request?.suggestedUrl || search} target="_blank" rel="noreferrer">{request?.selectedUrl || request?.suggestedUrl ? 'Abrir versão' : `Buscar no ${searchProviderLabels[searchProvider]}`} ↗</a></div>
+    <div className="video-edit"><input type="url" aria-label={`Link escolhido para ${entry.song}`} value={link} onChange={(event) => setLinkEdit(event.target.value)} placeholder="Link da versão escolhida" /><button className="mini-button" disabled={busy || link === (request?.selectedUrl || request?.suggestedUrl || '')} onClick={() => { const clean = youtubeUrl(link); if (clean === null || (clean && !youtubeVideoId(clean))) { window.alert('Cole um link direto de vídeo do YouTube ou YouTube Music.'); return }; onAction(() => saveSelectedUrl(entry.id, clean), 'Vídeo escolhido salvo.') }}>Salvar</button></div>
   </div><div className="queue-actions"><button className="icon-button" aria-label={`Subir ${entry.name} na fila`} title="Subir" disabled={busy || index <= firstMovable} onClick={() => onAction(() => moveQueueEntry(entry.id, -1))}>↑</button><button className="icon-button" aria-label={`Descer ${entry.name} na fila`} title="Descer" disabled={busy || index === length - 1 || (lockedFirst && index === 0)} onClick={() => onAction(() => moveQueueEntry(entry.id, 1))}>↓</button><button className="icon-button" aria-label={`Cancelar pedido de ${entry.name}`} title="Cancelar pedido" disabled={busy} onClick={() => { if (window.confirm(`Cancelar o pedido de ${entry.name}?`)) onAction(() => cancelRequest(entry.id)) }}>×</button></div></li>
 }
 
-function PendingCard({ request, busy, onAction }: { request: SongRequest; busy: boolean; onAction: RunAction }) {
+function PendingCard({ request, searchProvider, busy, onAction }: { request: SongRequest; searchProvider: SearchProvider; busy: boolean; onAction: RunAction }) {
   const [link, setLink] = useState(request.suggestedUrl)
   return <article className="pending-card"><div className="pending-top"><strong>{request.name}</strong>{request.table && <span>Mesa {request.table}</span>}</div><h3>{request.song}</h3><p>{request.artist}</p>
-    <div className="pending-links"><a href={youtubeSearch(request.song, request.artist)} target="_blank" rel="noreferrer">Buscar no YouTube ↗</a>{request.suggestedUrl && <a href={request.suggestedUrl} target="_blank" rel="noreferrer">Link sugerido ↗</a>}</div>
+    <div className="pending-links"><a href={karaokeSearch(searchProvider, request.song, request.artist)} target="_blank" rel="noreferrer">Buscar no {searchProviderLabels[searchProvider]} ↗</a>{request.suggestedUrl && <a href={request.suggestedUrl} target="_blank" rel="noreferrer">Link sugerido ↗</a>}</div>
     <label className="compact-label">Vídeo escolhido <span className="optional">opcional</span><input type="url" value={link} onChange={(event) => setLink(event.target.value)} placeholder="Cole aqui a versão escolhida" /></label>
     <div className="pending-actions"><button className="button button-primary" disabled={busy} onClick={() => {
       const clean = youtubeUrl(link)
-      if (clean === null || (clean && !youtubeVideoId(clean))) { window.alert('Cole um link direto de vídeo do YouTube ou deixe vazio.'); return }
+      if (clean === null || (clean && !youtubeVideoId(clean))) { window.alert('Cole um link direto de vídeo do YouTube ou YouTube Music, ou deixe vazio.'); return }
       onAction(() => approveRequest(request.id, clean), 'Pedido aprovado e incluído na fila.')
     }}>Aprovar</button><button className="button button-outline" disabled={busy} onClick={() => onAction(() => rejectRequest(request.id))}>Recusar</button></div>
   </article>

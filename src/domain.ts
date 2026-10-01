@@ -1,6 +1,7 @@
 export type RequestStatus = 'pending' | 'queued' | 'calling' | 'singing' | 'completed' | 'removed' | 'rejected' | 'cancelled'
 export type Stage = 'idle' | 'calling' | 'singing'
 export type TvMode = 'video' | 'classic'
+export type SearchProvider = 'youtube' | 'youtube_music' | 'spotify'
 
 export interface SongRequest {
   id: string
@@ -124,7 +125,7 @@ export function youtubeUrl(value: string): string | null {
   try {
     const url = new URL(value.trim())
     if (url.protocol !== 'https:') return null
-    if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be', 'www.youtu.be'].includes(url.hostname)) {
+    if (['youtube.com', 'www.youtube.com', 'm.youtube.com', 'music.youtube.com', 'youtu.be', 'www.youtu.be'].includes(url.hostname)) {
       return url.toString()
     }
   } catch { /* invalid URL */ }
@@ -145,4 +146,11 @@ export function youtubeVideoId(value: string): string | null {
 
 export function youtubeSearch(song: string, artist: string): string {
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${song} ${artist} karaoke com letra`)}`
+}
+
+export function karaokeSearch(provider: SearchProvider, song: string, artist: string): string {
+  const query = `${song} ${artist} karaoke com letra`
+  if (provider === 'youtube_music') return `https://music.youtube.com/search?q=${encodeURIComponent(query)}`
+  if (provider === 'spotify') return `https://open.spotify.com/search/${encodeURIComponent(`${song} ${artist} karaoke`)}`
+  return youtubeSearch(song, artist)
 }

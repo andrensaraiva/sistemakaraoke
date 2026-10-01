@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
-type Player = { playVideo: () => void; destroy: () => void }
+type Player = { playVideo: () => void; destroy: () => void; getIframe?: () => HTMLIFrameElement }
 type PlayerEvent = { target: Player }
 type PlayerStateEvent = PlayerEvent & { data: number }
 type YoutubeApi = {
@@ -85,6 +85,8 @@ export function TvPlayer({ videoId, url }: { videoId: string; url: string }) {
         events: {
           onReady: () => {
             ready = true
+            const iframe = playerRef.current?.getIframe?.()
+            if (iframe) iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture'
             if (frameRef.current) {
               observer = new IntersectionObserver(tryPlay, { threshold: 0.5 })
               observer.observe(frameRef.current)
@@ -99,13 +101,18 @@ export function TvPlayer({ videoId, url }: { videoId: string; url: string }) {
           onError: () => setStatus('error'),
         },
       })
+      const iframe = playerRef.current.getIframe?.()
+      if (iframe) iframe.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture'
     }).catch(() => { if (!cancelled) setStatus('error') })
 
     document.addEventListener('visibilitychange', tryPlay)
+    const preparePlayback = () => playerRef.current?.playVideo()
+    window.addEventListener('karaoke:prepare-playback', preparePlayback)
     return () => {
       cancelled = true
       observer?.disconnect()
       document.removeEventListener('visibilitychange', tryPlay)
+      window.removeEventListener('karaoke:prepare-playback', preparePlayback)
       playerRef.current?.destroy()
       playerRef.current = null
     }

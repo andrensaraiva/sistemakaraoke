@@ -85,7 +85,7 @@ export function GuestPage() {
             <label>Mesa <span className="optional">opcional</span><input value={form.table} onChange={(event) => setForm({ ...form, table: event.target.value })} maxLength={10} placeholder="Ex.: 04" /></label></div>
           <label>Música <span aria-hidden="true">*</span><input value={form.song} onChange={(event) => setForm({ ...form, song: event.target.value })} maxLength={100} required placeholder="Nome da música" /></label>
           <label>Artista <span aria-hidden="true">*</span><input value={form.artist} onChange={(event) => setForm({ ...form, artist: event.target.value })} maxLength={100} required placeholder="Quem canta?" /></label>
-          <label>Link do YouTube <span className="optional">opcional</span><input type="url" value={form.suggestedUrl} onChange={(event) => setForm({ ...form, suggestedUrl: event.target.value })} placeholder="https://youtu.be/..." /></label>
+          <label>Link do YouTube ou YouTube Music <span className="optional">opcional</span><input type="url" value={form.suggestedUrl} onChange={(event) => setForm({ ...form, suggestedUrl: event.target.value })} placeholder="https://youtu.be/..." /></label>
           <button className="button button-primary submit-button" disabled={busy || !uid} type="submit">{busy ? 'Enviando...' : 'Entrar na fila'} <span aria-hidden="true">↗</span></button>
         </form>
       </section>}

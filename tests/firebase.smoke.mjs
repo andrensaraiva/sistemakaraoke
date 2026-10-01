@@ -33,12 +33,15 @@ try {
     body: `window.YT = { Player: class {
       constructor(element, options) {
         this.options = options;
-        element.className = 'mock-youtube-player';
-        element.textContent = options.videoId;
+        this.frame = document.createElement('iframe');
+        this.frame.className = 'mock-youtube-player';
+        this.frame.textContent = options.videoId;
+        element.replaceWith(this.frame);
         window.__mockPlayer = this;
         setTimeout(() => options.events.onReady({ target: this }), 0);
       }
-      playVideo() { this.options.events.onStateChange({ target: this, data: 1 }); }
+      getIframe() { return this.frame; }
+      playVideo() { window.__playCount = (window.__playCount || 0) + 1; this.options.events.onStateChange({ target: this, data: 1 }); }
       destroy() {}
     }};
     window.onYouTubeIframeAPIReady?.();`,
@@ -56,6 +59,8 @@ try {
   const tv = await operatorContext.newPage()
   await tv.goto(`${origin}/telao`)
   await tv.getByText('O palco espera por você.').waitFor()
+  await tv.getByRole('button', { name: 'Preparar telão' }).click()
+  await tv.getByRole('button', { name: 'Preparar telão' }).waitFor({ state: 'hidden' })
 
   await guest.goto(`${origin}/mesa/04`)
   await guest.getByLabel(/Seu nome/).fill('Cantora Firebase')
@@ -83,7 +88,8 @@ try {
   assert.equal(await operator.getByRole('button', { name: 'Tocar no telão' }).isEnabled(), true)
   await operator.getByRole('button', { name: 'Tocar no telão' }).click()
   await tv.locator('.mock-youtube-player').waitFor()
-  assert.equal(await tv.locator('.mock-youtube-player').textContent(), 'M7lc1UVf-VE')
+  assert.equal(await tv.locator('.mock-youtube-player').getAttribute('allow'), 'autoplay; encrypted-media; fullscreen; picture-in-picture')
+  assert.ok(await tv.evaluate(() => window.__playCount > 0), 'O telão deve tentar iniciar o vídeo quando o operador tocar')
   await operator.getByRole('button', { name: 'Painel clássico' }).click()
   await tv.locator('.tv-feature-inner').getByText('NO PALCO AGORA', { exact: true }).waitFor()
   assert.equal(await tv.locator('.mock-youtube-player').count(), 0)

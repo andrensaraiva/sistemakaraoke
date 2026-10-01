@@ -372,7 +372,7 @@ export async function startSong() {
       const request = data.requests.find((item) => item.id === data.room.queue[0]?.id)
       assertRequest(request)
       const playbackUrl = request.selectedUrl || request.suggestedUrl
-      if ((data.room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
+      if ((data.room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube ou YouTube Music antes de iniciar.')
       request.status = 'singing'; request.onMyWay = true
       data.room.stage = 'singing'; data.room.calledAt = null
       data.room.playbackUrl = youtubeVideoId(playbackUrl) ? playbackUrl : ''
@@ -388,7 +388,7 @@ export async function startSong() {
     const request = requestSnapshot.data() as SongRequest | undefined
     assertRequest(request)
     const playbackUrl = request.selectedUrl || request.suggestedUrl
-    if ((room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube antes de iniciar.')
+    if ((room.tvMode ?? 'video') === 'video' && !youtubeVideoId(playbackUrl)) throw new Error('Escolha um link direto de vídeo do YouTube ou YouTube Music antes de iniciar.')
     transaction.update(mainRoom!, { stage: 'singing', calledAt: null, playbackUrl: youtubeVideoId(playbackUrl) ? playbackUrl : '' })
     transaction.update(requestRef(room.queue[0].id), { status: 'singing', onMyWay: true })
   })
@@ -470,7 +470,7 @@ export async function cancelRequest(id: string) {
 }
 
 export async function saveSelectedUrl(id: string, selectedUrl: string) {
-  if (selectedUrl && !youtubeVideoId(selectedUrl)) throw new Error('Cole um link direto de vídeo do YouTube.')
+  if (selectedUrl && !youtubeVideoId(selectedUrl)) throw new Error('Cole um link direto de vídeo do YouTube ou YouTube Music.')
   if (demoMode) {
     mutateDemo((data) => {
       const request = data.requests.find((item) => item.id === id)

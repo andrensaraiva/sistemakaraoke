@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { youtubeVideoId } from '../domain'
 import { Brand, DemoBanner } from './Brand'
@@ -7,6 +8,7 @@ import { venueName } from './venue'
 import { guestUrl } from './siteUrls'
 
 export function TvPage() {
+  const [prepared, setPrepared] = useState(false)
   const room = useRoom()
   const current = room.stage !== 'idle' ? room.queue[0] : null
   const countdown = useCountdown(room.stage === 'calling' ? room.calledAt : null)
@@ -19,6 +21,10 @@ export function TvPage() {
 
   return <div className="tv-shell">
     <div className="tv-top"><Brand /><span className="live-indicator"><span /> AO VIVO</span></div>
+    {(room.tvMode ?? 'video') === 'video' && !prepared && <div className="tv-audio-setup">
+      <span>Antes da primeira música, prepare o vídeo com som neste computador.</span>
+      <button onClick={() => { setPrepared(true); window.dispatchEvent(new Event('karaoke:prepare-playback')) }}>Preparar telão</button>
+    </div>}
     {room.stage === 'calling' && current ? <main className="tv-call" aria-live="assertive">
       <span className="tv-kicker">ATENÇÃO, PALCO!</span>
       <h1>{current.name}</h1>{current.table && <div className="tv-table">MESA {current.table}</div>}

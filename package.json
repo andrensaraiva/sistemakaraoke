@@ -9,9 +9,10 @@
     "build": "tsc -b && vite build",
     "build:firebase": "node scripts/check-firebase-env.mjs && npm run build",
     "dev:firebase-test": "vite --mode emulator",
-    "test": "node --experimental-strip-types --test tests/domain.test.mjs tests/reports.test.mjs",
+    "test": "node --experimental-strip-types --test tests/domain.test.mjs tests/reports.test.mjs tests/youtube.test.mjs",
     "test:rules": "firebase emulators:exec --project demo-sistema-karaoke --only firestore \"node tests/firestore.rules.test.mjs\"",
     "test:mobile": "node tests/mobile.smoke.mjs",
+    "test:youtube-ui": "node tests/youtube.ui.smoke.mjs",
     "test:firebase": "firebase emulators:exec --project demo-sistema-karaoke --only auth,firestore \"node tests/firebase.smoke.mjs\"",
     "lint": "oxlint",
     "preview": "vite preview"

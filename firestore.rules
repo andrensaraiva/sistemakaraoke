@@ -19,6 +19,7 @@ service cloud.firestore {
       return value is string && value.size() <= 500 && (
         value == '' ||
         value.matches('^https://(www[.]|m[.])?youtube[.]com/.*$') ||
+        value.matches('^https://music[.]youtube[.]com/.*$') ||
         value.matches('^https://(www[.])?youtu[.]be/.*$')
       );
     }

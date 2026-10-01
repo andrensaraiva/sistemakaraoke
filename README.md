@@ -31,6 +31,21 @@ No painel, cole um link direto de vídeo do YouTube na primeira pessoa da fila e
 
 Em **Operação → Telão**, alterne entre **Vídeo + fila** e **Painel clássico**. A aba do telão muda imediatamente, e a escolha continua nas próximas noites. O modo clássico mostra o cantor e a fila sem incorporar o vídeo; nele, o operador pode abrir o YouTube separadamente. Trocar durante uma música interrompe a reprodução incorporada.
 
+O operador pode escolher **YouTube**, **YouTube Music** ou **Spotify** em **Operação → Buscar karaokê em**. Essa escolha fica salva no navegador do operador e muda os links de busca dos pedidos. Links diretos `music.youtube.com/watch?v=...` podem ser escolhidos para o telão; o player usa o vídeo correspondente do YouTube. Spotify é apenas uma fonte de busca e pode ser usado com o painel clássico, pois o telão não reproduz faixas do Spotify.
+
+### Busca integrada e playlist da noite
+
+A seção **Buscar e montar playlist** oferece duas formas de trabalho. **Abrir YouTube Music** mostra a página original em outra janela; no computador, ela pode ficar ao lado do operador. A busca integrada permite pesquisar vídeos dentro do painel, escolher uma versão para a fila do sistema e, com um clique separado, adicioná-la à playlist criada na conta do YouTube Music. A página completa do YouTube Music não pode ser embutida no painel. A conexão com Google só é solicitada ao operador e o token de acesso fica apenas na memória desta aba; é preciso reconectar quando expirar ou recarregar a página.
+
+Para habilitar essa seção, no projeto Google Cloud usado para a integração:
+
+1. Ative a [YouTube Data API v3](https://console.cloud.google.com/apis/library/youtube.googleapis.com) no projeto escolhido.
+2. Configure a [tela de consentimento OAuth](https://console.cloud.google.com/auth/branding). Em teste, adicione a conta Google que possui a playlist como usuário de teste. A conta do operador do Firebase continua separada.
+3. Crie um [cliente OAuth Web](https://console.cloud.google.com/auth/clients), com `https://operadorkdc.web.app` em **Origens JavaScript autorizadas**. Para teste local, adicione `http://localhost:5173` e `http://127.0.0.1:5173` se for usar ambos os endereços.
+4. Coloque o **ID do cliente** (não o segredo) em `VITE_GOOGLE_OAUTH_CLIENT_ID` no `.env.local`, reinicie o servidor local ou publique novamente os sites. No painel, clique em **Conectar conta Google**, cole o link da playlist criada no YouTube Music e clique em **Selecionar playlist**.
+
+A busca integrada usa a cota da YouTube Data API. Mesmo no modo demonstração, clicar em **Adicionar à playlist** altera a playlist real da conta Google conectada; use uma playlist de teste. Apenas vídeos que o YouTube Music classifica como música aparecem na biblioteca do YouTube Music, mesmo que estejam numa playlist visível no YouTube. [Documentação das playlists do YouTube Music](https://support.google.com/youtubemusic/answer/7205933?co=GENIE.Platform%3DDesktop&hl=pt-BR).
+
 Em uma cópia sem `.env.local`, o projeto abre em **modo demonstração**. Os dados ficam no armazenamento deste navegador e são compartilhados entre abas abertas no mesmo computador. As telas são:
 
 - `/` ou `/mesa/04`: pedido do cliente. A mesa é opcional; o QR de uma mesa já preenche o número.
@@ -83,7 +98,7 @@ Nesta máquina, o PowerShell bloqueia `npm.ps1` e `npx.ps1`; use `npm.cmd` e `np
 
 - **Uma TV:** mantenha `https://telaokdc.web.app` aberto no navegador conectado à TV. O operador usa `https://operadorkdc.web.app` no celular ou tablet, salva o link direto da versão escolhida na fila, chama o cantor e pode marcar **Confirmar presença** ao vê-lo chegar. Com a presença confirmada, pode tocar em **Tocar no telão** antes dos 10 segundos terminarem. O vídeo aparece ao lado da fila; ao terminar, o telão mostra uma espera até o operador concluir a música. O convidado não precisa confirmar nada no celular.
 - Em **Operação → Telão**, escolha **Painel clássico** para voltar à visualização sem vídeo incorporado. Nesse modo, o link do YouTube é opcional e o operador abre o vídeo separadamente. **Vídeo + fila** exige um link direto de vídeo antes de iniciar.
-- O navegador da TV pode bloquear a reprodução automática com som. Nesse caso, toque em **Tocar vídeo** no telão. Alguns vídeos proíbem incorporação; escolha outra versão ou use o link **Abrir no YouTube**. A fila fica ao lado do player porque as [regras do YouTube](https://developers.google.com/youtube/terms/required-minimum-functionality) não permitem cobri-lo.
+- No computador da TV, clique em **Preparar telão** uma vez após abrir a página. Isso autoriza o Chrome ou Edge a tentar reproduzir os vídeos seguintes com som quando o operador clicar em **Tocar no telão**. O navegador ainda pode bloquear a reprodução; nesse caso, toque em **Tocar vídeo** no telão. Alguns vídeos proíbem incorporação; escolha outra versão ou use o link **Abrir no YouTube**. A fila fica ao lado do player porque as [regras do YouTube](https://developers.google.com/youtube/terms/required-minimum-functionality) não permitem cobri-lo.
 - **Duas TVs:** mantenha `https://telaokdc.web.app` em uma TV e o vídeo da música na outra.
 - O operador escolhe e toca o vídeo. O sistema não inicia músicas automaticamente.
 - O operador pode confirmar a presença e iniciar a música imediatamente. Se ninguém chegar, após os 10 segundos ele pode dar outra chance ou cancelar o pedido. “Dar outra chance” devolve o pedido para depois do próximo cantor, sem limite automático de faltas. Quando todos perderam uma chamada, o operador pode chamá-los novamente para a fila não travar.

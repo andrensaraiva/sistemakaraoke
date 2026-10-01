@@ -40,7 +40,7 @@ try {
   await assertFails(roomRef.update({ open: false }))
   await assertFails(ownRef.set({ ...request, status: 'queued' }))
   await assertFails(ownRef.set({ ...request, suggestedUrl: 'https://youtube.com.evil.test/watch' }))
-  await assertSucceeds(ownRef.set(request))
+  await assertSucceeds(ownRef.set({ ...request, suggestedUrl: 'https://music.youtube.com/watch?v=M7lc1UVf-VE' }))
   await assertSucceeds(stranger.doc('rooms/main/requests/night-1_guest-2').set({
     ...request, id: 'night-1_guest-2', ownerUid: 'guest-2', table: '',
   }))

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  callNext, emptyRoom, finishSong, markNoShow, nextEligibleIndex, removeFromQueue, singerAlreadyQueued, toQueueEntry, youtubeUrl, youtubeVideoId,
+  callNext, emptyRoom, finishSong, karaokeSearch, markNoShow, nextEligibleIndex, removeFromQueue, singerAlreadyQueued, toQueueEntry, youtubeUrl, youtubeVideoId,
 } from '../src/domain.ts'
 
 const nightId = 'test-night'
@@ -59,6 +59,7 @@ test('fila não trava quando todos perderam uma chamada', () => {
 
 test('link sugerido aceita só HTTPS do YouTube', () => {
   assert.equal(youtubeUrl('https://youtu.be/abc'), 'https://youtu.be/abc')
+  assert.equal(youtubeUrl('https://music.youtube.com/watch?v=M7lc1UVf-VE'), 'https://music.youtube.com/watch?v=M7lc1UVf-VE')
   assert.equal(youtubeUrl('https://youtube.com.evil.test/watch?v=abc'), null)
   assert.equal(youtubeUrl('javascript:alert(1)'), null)
 })
@@ -66,9 +67,16 @@ test('link sugerido aceita só HTTPS do YouTube', () => {
 test('o telão usa apenas links diretos de vídeos do YouTube', () => {
   assert.equal(youtubeVideoId('https://www.youtube.com/watch?v=M7lc1UVf-VE&t=10'), 'M7lc1UVf-VE')
   assert.equal(youtubeVideoId('https://youtu.be/M7lc1UVf-VE'), 'M7lc1UVf-VE')
+  assert.equal(youtubeVideoId('https://music.youtube.com/watch?v=M7lc1UVf-VE'), 'M7lc1UVf-VE')
   assert.equal(youtubeVideoId('https://www.youtube.com/shorts/M7lc1UVf-VE'), 'M7lc1UVf-VE')
   assert.equal(youtubeVideoId('https://www.youtube.com/results?search_query=karaoke'), null)
   assert.equal(youtubeVideoId('https://youtube.com.evil.test/watch?v=M7lc1UVf-VE'), null)
+})
+
+test('busca de karaokê usa a plataforma escolhida', () => {
+  assert.match(karaokeSearch('youtube', 'Canção', 'Artista'), /^https:\/\/www\.youtube\.com\/results\?/)
+  assert.match(karaokeSearch('youtube_music', 'Canção', 'Artista'), /^https:\/\/music\.youtube\.com\/search\?/)
+  assert.match(karaokeSearch('spotify', 'Canção', 'Artista'), /^https:\/\/open\.spotify\.com\/search\//)
 })
 
 test('nome e mesa iguais são detectados como pedido duplicado', () => {
